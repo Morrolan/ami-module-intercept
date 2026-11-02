@@ -6,6 +6,7 @@ from flask import Blueprint, Response, abort, jsonify, request, stream_with_cont
 
 from config import VERSION
 from utils.ami import TOOLS, ami_origin, call_tool, iso, journal, token_valid
+from utils.ami_features import features
 
 ami_bp = Blueprint("ami", __name__)
 
@@ -22,6 +23,7 @@ def authorize():
 @ami_bp.get("/.well-known/ami-module.json")
 def manifest():
     return jsonify({"contract": "1", "id": "intercept", "name": "Intercept", "version": VERSION,
+                    "features": features(),
                     "description": "Radio receiver and decoder intelligence", "mcp": "/api/module/mcp",
                     "health": "/api/module/health", "events": "/api/module/events",
                     "auth": {"type": "token", "roles": ["admin"]},

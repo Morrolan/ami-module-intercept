@@ -89,6 +89,8 @@ def contacts(kind, limit):
     # One atomic snapshot, including the actual last-observed timestamps.
     with store._lock:
         entries = [(dict(row), store.timestamps.get(key)) for key, row in store.data.items() if isinstance(row, dict)]
+    now = time.time()
+    fresh = sum(observed is not None and now - observed <= store.max_age for _, observed in entries)
     entries.sort(key=lambda pair: pair[1] or 0, reverse=True)
     result = []
     for row, observed in entries[:limit]:
@@ -96,11 +98,13 @@ def contacts(kind, limit):
                  if k in fields and isinstance(v, (str, int, float)) and not isinstance(v, bool)
                  and (not isinstance(v, float) or math.isfinite(v))}
         clean.update(asOf=iso(observed) if observed else None,
-                     stale=not observed or time.time() - observed > store.max_age)
+                     stale=observed is None or now - observed > store.max_age)
         result.append(clean)
     latest = entries[0][1] if entries else None
-    return envelope(result, f"Intercept {kind} decoder cache", iso(latest) if latest else None,
-                    not latest or time.time() - latest > store.max_age)
+    data = {"contacts": result, "total": len(entries), "fresh": fresh, "stale": len(entries) - fresh,
+            "lastMessageAt": iso(latest) if latest is not None else None}
+    return envelope(data, f"Intercept {kind} decoder cache", data["lastMessageAt"],
+                    latest is None or now - latest > store.max_age)
 
 
 class EventJournal:
@@ -221,7 +225,7 @@ def tool(name, description, properties=None, panel_tool=False):
 
 TOOLS = [tool("get_status", "Read decoder process status. Idle does not imply a receiver fault."),
          tool("list_receivers", "Read cached receiver types without probing hardware. Stale or empty is not proof of absence."),
-         tool("get_contacts", "Read recent aircraft or vessel contacts. No WiFi, Bluetooth or pager payloads.", {
+         tool("get_contacts", "Read aircraft or vessel contacts. Counts are exact; contacts is only the most recent N. Fresh means within the store TTL; total includes stale retained contacts. No WiFi, Bluetooth or pager payloads.", {
              "kind": {"type": "string", "enum": ["aircraft", "vessels"]},
              "limit": {"type": "integer", "minimum": 1, "maximum": 50}}),
          tool("get_recent_events", "Read recent decoder-health events, oldest first.", {

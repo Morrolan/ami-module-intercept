@@ -92,11 +92,11 @@ def test_contacts_allowlist_and_observation_age(monkeypatch):
     monkeypatch.setattr(runtime, "adsb_aircraft", store)
     result = ami.contacts("aircraft", 10)
     assert not result["stale"] and result["asOf"]
-    assert result["data"][0]["icao"] == "abc"
+    assert result["data"]["contacts"][0]["icao"] == "abc"
     assert "private" not in json.dumps(result) and "NaN" not in json.dumps(result)
     store.timestamps["abc"] -= 120
     assert ami.contacts("aircraft", 10)["stale"]
-    assert ami.contacts("aircraft", 10)["data"][0]["stale"]
+    assert ami.contacts("aircraft", 10)["data"]["contacts"][0]["stale"]
 
 
 def test_durable_debounced_fault_recovery_and_retention(tmp_path):
