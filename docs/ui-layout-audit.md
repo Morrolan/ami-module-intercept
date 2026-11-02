@@ -49,4 +49,4 @@ Populated cases now also cover Morse decoded/raw/diagnostics and open weather/Su
 
 Real desktop/phone ADS-B before/after screenshots were reviewed: selected details expand and the tracked list follows. Tiles were blocked in offline tests, so these images verify layout, not external map service quality. The separate map-colour/tile backlog request has no implementation in this branch.
 
-Existing full smoke suite passed 68 cases after its isolated MeshCore harness loaded the new real scroll dependency. Final combined new+existing suite is pending. No deployment performed.
+Existing full smoke suite passed 68 cases after its isolated MeshCore harness loaded the new real scroll dependency. Final combined new+existing browser suite: **241 passed, 4 skipped** in 601.84 seconds. The four skips are the opt-in diagnostic inventory collector, not product regression checks. Changed Python lint, JavaScript syntax and whitespace checks passed. No deployment performed.

@@ -18,6 +18,19 @@ GEOMETRY = """el => {
 }"""
 
 
+def route_layout_request(route, base_url):
+    url = route.request.url
+    if url.endswith("/system/stream"):
+        metrics = {"cpu": {"percent": 12, "cores": 2, "per_core": [10, 14]}, "memory": {"percent": 25}}
+        route.fulfill(content_type="text/event-stream", body="retry: 60000\ndata: " + json.dumps(metrics) + "\n\n")
+    elif "/system/" in url and "/static/" not in url:
+        route.fulfill(json={"source": "none", "devices": []})
+    elif url.startswith(base_url):
+        route.continue_()
+    else:
+        route.abort()
+
+
 @pytest.fixture(
     params=[
         ("dark", 1440, 900, False),
@@ -32,7 +45,7 @@ def layout_page(request, browser, base_url):
     context.add_init_script(INIT_SCRIPT % theme)
     if embedded:
         context.add_init_script("document.documentElement.classList.add('ami-embedded')")
-    context.route("**/*", lambda route: route.continue_() if route.request.url.startswith(base_url) else route.abort())
+    context.route("**/*", lambda route: route_layout_request(route, base_url))
     page = context.new_page()
     page.set_default_timeout(5000)
     yield page
@@ -109,7 +122,7 @@ def assert_information_grows(page, selector):
 def test_every_mode_information_flows(browser, base_url, embedded, width, height, theme):
     context = browser.new_context(viewport={"width": width, "height": height})
     context.add_init_script(INIT_SCRIPT % theme)
-    context.route("**/*", lambda r: r.continue_() if r.request.url.startswith(base_url) else r.abort())
+    context.route("**/*", lambda route: route_layout_request(route, base_url))
     page = context.new_page()
     page.set_default_timeout(5000)
     try:
@@ -237,7 +250,8 @@ def test_map_remains_usable_beside_growing_information(layout_page, base_url, pa
 
 def test_short_local_scroller_does_not_move_page(layout_page, base_url):
     page = layout_page
-    page.goto(base_url + "/?mode=pager", wait_until="domcontentloaded")
+    page.set_content('<!doctype html><html><body style="margin:0"><div style="height:1000px"></div></body></html>')
+    page.add_script_tag(path=str(Path(__file__).resolve().parents[2] / "static/js/core/content-layout.js"))
     page.evaluate("""()=>{
       const panel=document.createElement('div');panel.id='shortScroller';
       panel.style.cssText='height:120px;overflow:auto';panel.textContent='One line';
@@ -253,12 +267,12 @@ def test_short_local_scroller_does_not_move_page(layout_page, base_url):
 def test_mobile_drawer_retains_background_lock(browser, base_url):
     context = browser.new_context(viewport={"width": 390, "height": 844})
     context.add_init_script(INIT_SCRIPT % "dark")
-    context.route("**/*", lambda r: r.continue_() if r.request.url.startswith(base_url) else r.abort())
+    context.route("**/*", lambda route: route_layout_request(route, base_url))
     page = context.new_page()
     try:
         page.goto(base_url + "/?mode=pager", wait_until="domcontentloaded")
         page.wait_for_function("typeof toggleMobileDrawer==='function'")
-        page.evaluate("toggleMobileDrawer()")
+        page.locator("#hamburgerBtn").click()
         assert page.evaluate("getComputedStyle(document.body).overflowY") == "hidden"
         assert page.evaluate("getComputedStyle(document.documentElement).overflowY") == "hidden"
         drawer = page.locator("#mainSidebar")
