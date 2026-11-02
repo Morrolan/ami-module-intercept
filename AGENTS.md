@@ -214,3 +214,7 @@ Owner-reported look-and-feel mismatches with AMI (2026-10-24). Not urgent; fold 
 
 - `INTERCEPT_AMI_ONLY_AWAY=1` enforces AMI entry for `X-Intercept-Access: away` only with positive `INTERCEPT_TRUSTED_PROXIES`. Caddy must overwrite home/away on every public request; headerless internal health/module calls retain existing behaviour. Never expose the container directly.
 - Bearer-only `POST /api/module/session` requires MFA true and `INTERCEPT_AMI_USERS` mapping to an enabled local account; `/ami/enter` consumes a hashed, single-use 60-second pass and replaces the normal session with `via_ami=True`. Local account roles and forced password changes remain authoritative. Keep one worker and never log entry tickets.
+
+## Content-first UI layout (owner rule, 2026-11-02)
+
+Across Intercept, do not hide data behind fixed panes. Information panels must grow with their contents and push following sections down. In ADS-B, expanding selected-aircraft details must move TRACKED AIRCRAFT down instead of clipping the details or forcing scrolling inside a capped details pane. Use a clear page scroll path when full content exceeds the screen; preserve access to every value and action on desktop, mobile and inside AMI. Maps and plots may keep bounded canvas dimensions, but their containers must not obscure adjacent information. Review exceptions for large live streams explicitly. Plan: ../ami/docs/superpowers/plans/2026-11-02-content-first-layout.md.
