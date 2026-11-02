@@ -41,7 +41,8 @@ def _cache_get(key: str) -> Any | None:
 
 
 def _cache_set(key: str, data: Any, ttl: int) -> None:
-    _cache[key] = {"data": data, "expires": time.time() + ttl}
+    now = time.time()
+    _cache[key] = {"data": data, "expires": now + ttl, "fetchedAt": now}
 
 
 # ---------------------------------------------------------------------------

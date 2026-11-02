@@ -4,6 +4,7 @@ from __future__ import annotations
 import sqlite3
 import sys
 import time
+from contextlib import closing
 from datetime import datetime, timezone
 
 from utils.ami import contacts, envelope, iso, process_states
@@ -53,7 +54,7 @@ def _meshtastic_summary(now):
     """Aggregate stored messages without creating a database or reading payloads."""
     from utils.database import DB_PATH
     try:
-        with sqlite3.connect(DB_PATH.resolve().as_uri() + '?mode=ro', uri=True, timeout=0.2) as db:
+        with closing(sqlite3.connect(DB_PATH.resolve().as_uri() + '?mode=ro', uri=True, timeout=0.2)) as db:
             row = db.execute('SELECT COUNT(CASE WHEN received_at >= ? THEN 1 END), MAX(received_at) '
                              'FROM meshtastic_messages WHERE received_at <= ?', (now-3600, now)).fetchone()
         return {'count': row[0], 'countScope': 'stored messages in the last hour',
@@ -66,6 +67,8 @@ def overview():
     import app as runtime
     now = time.time()
     states = {key.replace('_', '-'): value for key, value in process_states().items()}
+    meter = getattr(runtime, 'rtlamr_process', None)
+    states['rtlamr'] = 'idle' if meter is None else 'running' if meter.poll() is None else 'stopped'
     states.update({name: 'running' if bool(getattr(_existing(mod, obj), attr, False)) else 'idle'
                    for name, (mod, obj, attr) in _INSTANCES.items()})
     for name, mod, flag in (('adsb', 'routes.adsb', 'adsb_using_service'),

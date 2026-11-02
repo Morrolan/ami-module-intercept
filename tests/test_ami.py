@@ -50,10 +50,12 @@ def test_session_cannot_authorize_module(client, anon_client, monkeypatch):
     assert rpc(anon_client, "tools/list").status_code == 401
 
 
-def test_read_only_tools_and_json_rpc(anon_client):
+def test_read_only_tools_and_json_rpc(anon_client, monkeypatch):
+    from routes import space_weather as sw
+    monkeypatch.setattr(sw, "_fetch_json", lambda *a, **kw: None)
     assert rpc(anon_client, "initialize").get_json()["result"]["protocolVersion"] == "2025-06-18"
     tools = rpc(anon_client, "tools/list").get_json()["result"]["tools"]
-    assert {t["name"] for t in tools} == {"get_status", "list_receivers", "get_contacts", "get_recent_events", "get_panel", "get_overview"}
+    assert {t["name"] for t in tools} == {"get_status", "list_receivers", "get_contacts", "get_recent_events", "get_panel", "get_overview", "get_space_weather"}
     for tool in tools:
         assert tool["annotations"]["readOnlyHint"] is True
         assert tool["_meta"]["ami/risk"] == "read"

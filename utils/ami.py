@@ -90,6 +90,8 @@ def contacts(kind, limit):
     with store._lock:
         entries = [(dict(row), store.timestamps.get(key)) for key, row in store.data.items() if isinstance(row, dict)]
     now = time.time()
+    entries = [(row, observed if type(observed) in (int, float) and math.isfinite(observed)
+                and 0 < observed <= now else None) for row, observed in entries]
     fresh = sum(observed is not None and now - observed <= store.max_age for _, observed in entries)
     entries.sort(key=lambda pair: pair[1] or 0, reverse=True)
     result = []
@@ -219,11 +221,12 @@ def tool(name, description, properties=None, panel_tool=False):
     return {"name": name, "description": description,
             "inputSchema": {"type": "object", "properties": properties or {}, "additionalProperties": False},
             "annotations": {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True},
-            "_meta": {"ami/risk": "read", "ami/scopes": ["intercept.read"], "ami/timeoutMs": 5000,
+            "_meta": {"ami/risk": "read", "ami/scopes": ["intercept.read"], "ami/timeoutMs": 20000 if name == "get_space_weather" else 5000,
                       **({"ami/panel": True} if panel_tool else {})}}
 
 
-TOOLS = [tool("get_overview", "Read passive activity for every mode, exact fresh aircraft/vessel counts and available retained message counts. Unmonitored modes have no server activity state; null counts are unavailable."),
+TOOLS = [tool("get_space_weather", "Read NOAA SWPC Kp, next 72-hour forecast, R/S/G scales, solar flux, alert titles/times and solar wind using existing SPACE WX caches."),
+         tool("get_overview", "Read passive activity for every mode, exact fresh aircraft/vessel counts and available retained message counts. Unmonitored modes have no server activity state; null counts are unavailable."),
          tool("get_status", "Read decoder process status. Idle does not imply a receiver fault."),
          tool("list_receivers", "Read cached receiver types without probing hardware. Stale or empty is not proof of absence."),
          tool("get_contacts", "Read aircraft or vessel contacts. Counts are exact; contacts is only the most recent N. Fresh means within the store TTL; total includes stale retained contacts. No WiFi, Bluetooth or pager payloads.", {
@@ -244,6 +247,9 @@ def call_tool(name, args):
             raise ValueError("Invalid integer argument")
         if "enum" in prop and value not in prop["enum"]:
             raise ValueError("Invalid kind")
+    if name == "get_space_weather":
+        from utils.ami_space_weather import space_weather
+        return space_weather()
     if name == "get_overview":
         from utils.ami_overview import overview
         return overview()

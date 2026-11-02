@@ -25,7 +25,7 @@ def test_manifest_features_match_contract_and_modes(anon_client, monkeypatch):
         assert 0 < len(f['where']) <= 80
         assert len(f['aliases']) <= 10 and all(0 < len(a) <= 40 for a in f['aliases'])
         assert len(f['tools']) <= 5
-        assert set(f['tools']) <= {'get_overview', 'get_contacts', 'get_space_weather'}
+        assert set(f['tools']) <= {tool['name'] for tool in ami.TOOLS}
     by_id = {f['id']: f for f in features}
     assert by_id['spaceweather']['name'] == 'SPACE WX'
     assert {'space weather', 'aurora', 'Kp', 'solar flares', 'geomagnetic storm'} <= set(by_id['spaceweather']['aliases'])
@@ -122,3 +122,46 @@ def test_overview_message_window_is_not_lifetime_count(monkeypatch):
     assert rows['acars']['lastMessageAt'] == ami.iso(now-5)
     assert rows['vdl2']['count'] == 0
     assert 'secret' not in json.dumps(rows)
+
+
+def test_invalid_contact_timestamps_are_stale(monkeypatch):
+    import app as runtime
+    store = DataStore(max_age_seconds=60)
+    for key, stamp in [('a', float('nan')), ('b', float('inf')), ('c', 'invalid')]:
+        store.set(key, {'icao': key})
+        store.timestamps[key] = stamp
+    monkeypatch.setattr(runtime, 'adsb_aircraft', store)
+    result = ami.contacts('aircraft', 3)
+    assert result['data']['total'] == 3 and result['data']['stale'] == 3
+    assert result['data']['lastMessageAt'] is None and result['stale']
+
+
+def test_overview_mesh_message_sql_uses_only_counts(monkeypatch, tmp_path):
+    import sqlite3
+
+    from utils import database
+    now = 1800000000
+    monkeypatch.setattr(ami.time, 'time', lambda: now)
+    path = tmp_path / 'messages.db'
+    with sqlite3.connect(path) as db:
+        db.execute('CREATE TABLE meshtastic_messages (received_at REAL, message TEXT)')
+        db.executemany('INSERT INTO meshtastic_messages VALUES (?, ?)', [(now-1, 'secret'), (now-3601, 'secret')])
+    monkeypatch.setattr(database, 'DB_PATH', path)
+    rows = {r['id']: r for r in ami.call_tool('get_overview', {})['data']}
+    assert rows['meshtastic']['count'] == 1
+    assert rows['meshtastic']['countScope'] == 'stored messages in the last hour'
+    assert rows['meshtastic']['lastMessageAt'] == ami.iso(now-1)
+    assert 'secret' not in json.dumps(rows)
+    monkeypatch.setattr(database, 'DB_PATH', tmp_path / 'missing.db')
+    rows = {r['id']: r for r in ami.call_tool('get_overview', {})['data']}
+    assert rows['meshtastic']['count'] is None
+    assert not (tmp_path / 'missing.db').exists()
+
+
+def test_overview_reports_running_utility_meter_decoder(monkeypatch):
+    from unittest.mock import Mock
+
+    import app as runtime
+    monkeypatch.setattr(runtime, 'rtlamr_process', Mock(poll=lambda: None))
+    rows = {r['id']: r for r in ami.call_tool('get_overview', {})['data']}
+    assert rows['rtlamr']['state'] == 'running' and rows['rtlamr']['monitored']
