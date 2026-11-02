@@ -28,6 +28,7 @@ def connected_page(browser):
             };
         }''')
         script = Path(__file__).resolve().parents[2] / 'static/js/modes/meshcore.js'
+        page.add_script_tag(path=str(script.parents[1] / 'core/content-layout.js'))
         page.add_script_tag(path=str(script))
         page.evaluate('MeshCore.init()')
         expect(page.locator('#meshcoreStatusText')).to_have_text('Connected')

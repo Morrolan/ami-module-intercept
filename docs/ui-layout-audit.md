@@ -37,6 +37,16 @@ Maps, spectra, radar canvases, image viewports, signal bars and decorative clipp
 
 Dialogs and the existing mobile navigation drawer retain a single viewport scroll area because they are overlays; their close controls and final actions must be reachable. No information-card cap is justified by a live-data source alone. Existing backend/UI retention limits and autoscroll behaviour are unchanged; historical data beyond those limits is outside this layout change.
 
-## Final verification
+## Review and verification
 
-Pending cross-mode regression matrix, full browser smoke and screenshot review. No deployment performed.
+Independent review found and the implementation repaired four gaps: map width collapsed when flex axes switched; short bounded logs could move the page; nested Morse/weather/SubGHz consoles remained capped; imperative overlay scroll locks were overridden. New regressions proved these failures before their fixes. The focused review cases passed 37/37, including 12 map geometry cases and open/collapsed console states.
+
+The current split main-page bundle did not initialize its existing mobile drawer. The shared layout helper supplies that initializer only if another bundle has not already provided it. Its real button opens/closes the drawer, Escape and desktop resize close it, and existing overlay locks are respected.
+
+Live-output call sites now use one helper: explicit auto-scroll preferences and start/end ordering remain with callers. Bounded overlays scroll locally; natural-height live output can scroll the page only while its section is already on screen. Background/offscreen updates do not move the page.
+
+Populated cases now also cover Morse decoded/raw/diagnostics and open weather/SubGHz consoles. Weather panel fixtures attach to the information card rather than the asynchronously replaced prediction list. This avoids a fixture race but does not simulate real satellite prediction data. Empty output shells are populated before visibility assertions; no claim is made that idle shells retain their former viewport height.
+
+Real desktop/phone ADS-B before/after screenshots were reviewed: selected details expand and the tracked list follows. Tiles were blocked in offline tests, so these images verify layout, not external map service quality. The separate map-colour/tile backlog request has no implementation in this branch.
+
+Existing full smoke suite passed 68 cases after its isolated MeshCore harness loaded the new real scroll dependency. Final combined new+existing suite is pending. No deployment performed.

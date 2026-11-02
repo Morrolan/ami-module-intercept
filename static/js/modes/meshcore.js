@@ -227,7 +227,7 @@ const MeshCore = (function () {
             </div>
             <div class="meshcore-message-text">${_esc(msg.text)}</div>`;
         feed.appendChild(el);
-        feed.scrollTop = feed.scrollHeight;
+        InterceptLayout.scrollToEdge(feed, 'end');
         _msgCount++;
         const mc = document.getElementById('meshcoreMsgCount');
         if (mc) mc.textContent = _msgCount;

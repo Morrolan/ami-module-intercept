@@ -2234,7 +2234,7 @@ const WeatherSat = (function() {
         }
 
         // Auto-scroll to bottom
-        log.scrollTop = log.scrollHeight;
+        InterceptLayout.scrollToEdge(log, 'end');
     }
 
     /**
@@ -2256,7 +2256,7 @@ const WeatherSat = (function() {
         });
         // Scroll to bottom
         const log = document.getElementById('wxsatConsoleLog');
-        if (log) log.scrollTop = log.scrollHeight;
+        if (log) InterceptLayout.scrollToEdge(log, 'end');
     }
 
     /**

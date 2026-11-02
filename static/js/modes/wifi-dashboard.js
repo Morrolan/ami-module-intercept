@@ -1589,7 +1589,7 @@ function addWifiNetworkCard(net, isNew) {
         </div>
     `;
 
-    if (autoScroll) output.scrollTop = 0;
+    if (autoScroll) InterceptLayout.scrollToEdge(output, 'start');
 
     // Feed to activity timeline if it's a new network
     if (isNew && typeof addTimelineEvent === 'function') {

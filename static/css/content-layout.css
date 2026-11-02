@@ -29,3 +29,125 @@ html body[data-mode="adsb"] .main-display {
     min-height: 320px;
     align-self: start;
 }
+
+/* The shell grows with information in either column. Mobile navigation remains
+   an explicit drawer with one scroll area, rather than a nested detail pane. */
+html body :is(.main-content, .content-wrapper, .content-main, .output-panel,
+    .dashboard-layout, .dashboard-main, .dashboard-sidebar, #signalViewWrap,
+    .pdir-feed-col, .output-content, #pagerDirectoryView, #sensorDashboardView) {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    min-width: 0;
+}
+@media (min-width: 1024px) {
+    html body .main-content > .sidebar:not(.mobile-drawer.open) {
+        max-height: none;
+        overflow: visible;
+    }
+    html body .main-content.sidebar-collapsed > .sidebar {
+        overflow: hidden;
+    }
+}
+/* Flex children must not squeeze their information to the old viewport. */
+html body :is(.section, .panel, .card, .sidebar-section) { flex-shrink: 0; }
+html body :is(.selected-info, .selected-vessel, .vessel-list, .vessel-list-content,
+    .dsc-messages, .dsc-list-content, .panel-body,
+    .panel-content:not(.map-panel-content), .drawer-list,
+    .aprs-panel, #aprsStationList, #aprsPacketLog, .iss-side, #issAprsList,
+    .mesh-side-tabs, .mesh-tabpane, .mesh-messages-section, #meshMessagesGrid,
+    .meshcore-panel, .meshcore-panel-section, .meshcore-content, .meshcore-tab-panel,
+    #meshcoreSidePanel, #meshcoreTabMessages, #meshcoreMessageFeed,
+    .wifi-layout-container, .wifi-main-content, .wifi-networks-panel,
+    .data-panel, #btDetailPanel, .bt-detail-body, .bt-side-panel, #btDeviceListPanel, #btDeviceListContent,
+    #btTrackerList, #tscmVisuals, #tscmVisuals .tscm-panel, #tscmVisuals [id$="List"],
+    .tscm-survey-container, .activity-list, .gps-visuals-container,
+    .drone-visuals-container, .drone-visuals-body, .drone-contact-panel,
+    .spy-stations-container, .sw-alerts-panel, .sw-regions-panel, #spaceWeatherVisuals,
+    .wxsat-content, .wxsat-passes-panel, #wxsatPassesList, .wxsat-gallery-panel, #wxsatGallery,
+    .sstv-visuals-container, .sstv-countdown-panel, .sstv-main-row, .sstv-live-section,
+    .sstv-gallery-section, #sstvGallery, .sstv-general-visuals-container,
+    .sstv-general-main-row, .sstv-general-live-section, .sstv-general-gallery-section,
+    #sstvGeneralGallery, .wefax-schedule-panel, .wefax-live-section,
+    .wefax-gallery-section, #wefaxGallery, .event-log, .agent-list) {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    min-width: 0;
+}
+/* Standalone tracking consoles share the same content-driven page height. */
+html body :is(.aprs-dashboard, .aprs-body, .mesh-dashboard, .meshcore-dashboard,
+    .mesh-main-row, .meshcore-body, #meshcoreVisuals, #meshtasticVisuals,
+    .iss-dashboard) {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+}
+html body[data-mode="ais"] :is(.dashboard, .sidebar) {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    grid-template-rows: auto auto;
+}
+/* A map's drawing area stays usable when its neighbouring information grows. */
+html body[data-mode="ais"] .main-display,
+html body :is(.aprs-map-wrap, .mesh-map-section, .iss-map-wrap) {
+    height: clamp(320px, 65vh, 720px);
+    min-height: 320px;
+    align-self: start;
+}
+
+html body :is(.mesh-tabpane, .mesh-messages-section, .meshcore-panel-section,
+    .meshcore-tab-panel, .sstv-countdown-panel) { flex: none; }
+html body .mesh-map-section { flex: 2 1 0; }
+html body .iss-map-wrap { flex: 1 1 0; }
+
+/* These cards formerly divided a fixed-height column with zero flex bases;
+   keeping those bases after removing the cap would make following cards overlap. */
+html body :is(#btVisuals, #radiosondeCardContainer, .ms-events-scroll) {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+}
+html body .aprs-panel { flex: none !important; }
+html body :is(.ms-events-panel, .bt-layout-container, .bt-visuals-column) {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+}
+html body .wifi-networks-table-wrapper {
+    height: auto !important;
+    max-height: none !important;
+    overflow-x: auto;
+    overflow-y: visible;
+}
+@media (max-width: 1280px) {
+    html body .bt-layout-container > .bt-visuals-column { flex: none; }
+}
+/* In a column layout the cross axis is horizontal: start would shrink-wrap an
+   otherwise empty, absolutely positioned map down to zero width. */
+html body :is(.aprs-map-wrap, .iss-map-wrap) { align-self: stretch; }
+@media (max-width: 900px) {
+    html body .mesh-map-section {
+        align-self: stretch;
+        width: 100%;
+        flex: none;
+    }
+}
+
+/* Open decoder consoles contain information, not fixed drawing canvases.
+   A user's collapsed console must keep its original max-height:0 behaviour. */
+html body :is(.morse-decoded-panel, .morse-raw-text, #morseDiagLog),
+html body :is(.wxsat-console-body, .subghz-console-body):not(.collapsed),
+html body .wxsat-console-body:not(.collapsed) .wxsat-console-log,
+html body .subghz-console-body:not(.collapsed) .subghz-console-log {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+}
+/* Existing overlays lock scrolling imperatively through CSSOM. Respect that
+   state on both scroll owners, including in the old short-window theme rules. */
+html:has(> body[style*="overflow: hidden"]),
+html:has(> body[style*="overflow:hidden"]),
+html body[style*="overflow: hidden"],
+html body[style*="overflow:hidden"] { overflow: hidden !important; }
