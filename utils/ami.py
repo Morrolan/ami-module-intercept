@@ -223,7 +223,8 @@ def tool(name, description, properties=None, panel_tool=False):
                       **({"ami/panel": True} if panel_tool else {})}}
 
 
-TOOLS = [tool("get_status", "Read decoder process status. Idle does not imply a receiver fault."),
+TOOLS = [tool("get_overview", "Read passive activity for every mode, exact fresh aircraft/vessel counts and available retained message counts. Unmonitored modes have no server activity state; null counts are unavailable."),
+         tool("get_status", "Read decoder process status. Idle does not imply a receiver fault."),
          tool("list_receivers", "Read cached receiver types without probing hardware. Stale or empty is not proof of absence."),
          tool("get_contacts", "Read aircraft or vessel contacts. Counts are exact; contacts is only the most recent N. Fresh means within the store TTL; total includes stale retained contacts. No WiFi, Bluetooth or pager payloads.", {
              "kind": {"type": "string", "enum": ["aircraft", "vessels"]},
@@ -243,6 +244,9 @@ def call_tool(name, args):
             raise ValueError("Invalid integer argument")
         if "enum" in prop and value not in prop["enum"]:
             raise ValueError("Invalid kind")
+    if name == "get_overview":
+        from utils.ami_overview import overview
+        return overview()
     if name == "get_status":
         return status()
     if name == "list_receivers":

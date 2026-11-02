@@ -53,7 +53,7 @@ def test_session_cannot_authorize_module(client, anon_client, monkeypatch):
 def test_read_only_tools_and_json_rpc(anon_client):
     assert rpc(anon_client, "initialize").get_json()["result"]["protocolVersion"] == "2025-06-18"
     tools = rpc(anon_client, "tools/list").get_json()["result"]["tools"]
-    assert {t["name"] for t in tools} == {"get_status", "list_receivers", "get_contacts", "get_recent_events", "get_panel"}
+    assert {t["name"] for t in tools} == {"get_status", "list_receivers", "get_contacts", "get_recent_events", "get_panel", "get_overview"}
     for tool in tools:
         assert tool["annotations"]["readOnlyHint"] is True
         assert tool["_meta"]["ami/risk"] == "read"
