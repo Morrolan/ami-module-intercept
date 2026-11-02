@@ -1,0 +1,31 @@
+/* Content-first layout, shared by all Intercept documents (owner rule).
+   Deliberately target information containers, never map/plot drawing internals.
+   Important declarations beat legacy viewport caps and inline mode heights. */
+html, html body {
+    height: auto !important;
+    min-height: 100%;
+    overflow-y: auto !important;
+}
+html body { min-height: 100vh; }
+
+/* Aircraft details grow; the tracked list follows in normal document order. */
+html body[data-mode="adsb"] .dashboard {
+    height: auto !important;
+    flex: none;
+    grid-template-rows: auto auto;
+}
+html body[data-mode="adsb"] :is(.sidebar, .selected-aircraft, .selected-info,
+    .aircraft-list, .aircraft-list-content, .left-sidebars, .acars-sidebar-content,
+    .vdl2-sidebar-content, .acars-panel, .vdl2-panel, #acarsPanelContent,
+    #vdl2PanelContent, .acars-messages, .vdl2-messages) {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    flex: none;
+}
+html body[data-mode="adsb"] .sidebar { min-width: 0; }
+html body[data-mode="adsb"] .main-display {
+    height: clamp(320px, 65vh, 720px);
+    min-height: 320px;
+    align-self: start;
+}
