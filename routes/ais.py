@@ -33,6 +33,7 @@ from utils.responses import api_error, api_success
 from utils.sdr import SDRFactory, SDRType
 from utils.sdr.detection import detect_all_devices
 from utils.sdr.device_config import apply_device_defaults
+from utils.sdr.hotplug import managed_command
 from utils.sse import sse_stream_fanout
 from utils.validation import validate_device_index, validate_gain, validate_ppm
 
@@ -476,7 +477,7 @@ def start_ais():
     try:
         logger.info(f"Starting AIS-catcher with device {device}: {' '.join(cmd)}")
         app_module.ais_process = subprocess.Popen(
-            cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, start_new_session=True
+            managed_command(cmd), stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, start_new_session=True
         )
 
         # Wait for process to start

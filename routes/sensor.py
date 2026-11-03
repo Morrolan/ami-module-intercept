@@ -23,6 +23,7 @@ from utils.process import register_process, terminate_together, unregister_proce
 from utils.responses import api_error, api_success
 from utils.sdr import SDRFactory, SDRType
 from utils.sdr.device_config import apply_device_defaults
+from utils.sdr.hotplug import managed_command
 from utils.sse import sse_stream_fanout
 from utils.validation import (
     validate_device_index,
@@ -270,7 +271,7 @@ def start_sensor() -> Response:
         cmd.extend(["-C", units])
 
         try:
-            app_module.sensor_process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            app_module.sensor_process = subprocess.Popen(managed_command(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             register_process(app_module.sensor_process)
 
             # Start output thread

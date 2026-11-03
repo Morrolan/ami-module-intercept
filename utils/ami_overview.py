@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 
 from utils.ami import contacts, envelope, iso, process_states
 from utils.ami_features import features
+from utils.sdr.hotplug import status as hotplug_status
 
 # Read only already-loaded modules and existing instances. Some getters construct
 # decoders and discover tools, so they are deliberately not used here.
@@ -125,4 +126,6 @@ def overview():
     rows = [{'id': f['id'], 'name': f['name'], 'state': states.get(f['id'], 'idle'),
              'monitored': f['id'] in states, 'count': None, 'countScope': None,
              'lastMessageAt': None, **metrics.get(f['id'], {})} for f in features()]
-    return envelope(rows, 'Intercept passive runtime snapshot', iso(now))
+    result = envelope(rows, 'Intercept passive runtime snapshot', iso(now))
+    result['hotplug'] = hotplug_status()
+    return result

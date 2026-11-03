@@ -22,6 +22,7 @@ from typing import Any
 from flask import Blueprint, Response, jsonify, make_response, render_template, request
 
 from utils.responses import api_error, api_success
+from utils.sdr.hotplug import managed_command
 
 # psycopg2 is optional - only needed for PostgreSQL history persistence
 try:
@@ -1200,7 +1201,7 @@ def start_adsb():
     try:
         logger.info(f"Starting dump1090 with device index {device}: {' '.join(cmd)}")
         app_module.adsb_process = subprocess.Popen(
-            cmd,
+            managed_command(cmd),
             stdout=subprocess.DEVNULL,
             stderr=subprocess.PIPE,
             start_new_session=True,  # Create new process group for clean shutdown

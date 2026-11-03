@@ -40,6 +40,7 @@ from utils.process import register_process, unregister_process
 from utils.responses import api_error
 from utils.sdr import SDRFactory, SDRType
 from utils.sdr.device_config import apply_device_defaults
+from utils.sdr.hotplug import managed_command
 from utils.sse import sse_stream_fanout
 from utils.validation import (
     validate_device_index,
@@ -378,7 +379,7 @@ def start_decoding() -> Response:
 
         try:
             # Start rtl_fm subprocess
-            rtl_process = subprocess.Popen(rtl_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            rtl_process = subprocess.Popen(managed_command(rtl_cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             register_process(rtl_process)
 
             # Start stderr monitor thread

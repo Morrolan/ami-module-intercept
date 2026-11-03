@@ -30,6 +30,7 @@ from utils.process import register_process, unregister_process
 from utils.responses import api_error
 from utils.sdr import SDRFactory, SDRType
 from utils.sdr.device_config import apply_device_defaults
+from utils.sdr.hotplug import managed_command, startup_delay
 from utils.sse import sse_stream_fanout
 from utils.validation import validate_device_index, validate_gain, validate_ppm
 
@@ -288,17 +289,17 @@ def start_vdl2() -> Response:
         # On macOS, use pty to avoid stdout buffering issues
         if platform.system() == "Darwin":
             master_fd, slave_fd = pty.openpty()
-            process = subprocess.Popen(cmd, stdout=slave_fd, stderr=subprocess.PIPE, start_new_session=True)
+            process = subprocess.Popen(managed_command(cmd), stdout=slave_fd, stderr=subprocess.PIPE, start_new_session=True)
             os.close(slave_fd)
             # Wrap master_fd as a text file for line-buffered reading; replace
             # undecodable bytes like the pipe path does, so noise can't kill the reader
             process.stdout = open(master_fd, buffering=1, encoding="utf-8", errors="replace")
             is_text_mode = True
         else:
-            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
+            process = subprocess.Popen(managed_command(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
 
         # Wait briefly to check if process started
-        time.sleep(PROCESS_START_WAIT)
+        time.sleep(startup_delay(process, PROCESS_START_WAIT))
 
         if process.poll() is not None:
             # Process died - release device

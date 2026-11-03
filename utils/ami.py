@@ -17,6 +17,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from config import VERSION
+from utils.sdr.hotplug import status as hotplug_status
 
 log = logging.getLogger(__name__)
 PROCESSES = {
@@ -200,14 +201,18 @@ def _monitor():
 def status():
     cached = receivers()
     return envelope({"version": VERSION, "decoders": process_states(),
-                     "receivers": cached}, "Intercept process state", iso(), cached["stale"])
+                     "receivers": cached, "hotplug": hotplug_status()}, "Intercept process state", iso(), cached["stale"])
 
 
 def panel():
     states = process_states()
     receiver_data = receivers()
+    usb = hotplug_status()
+    usb_tiles = [{"label": "SDR USB", "value": "Connected" if usb["available"] else "Waiting for receiver",
+                  "level": "ok" if usb["available"] else "warn"}] if usb["enabled"] else []
     return {"title": "Intercept", "updatedAt": iso(), "sections": [
         {"id": "receivers", "title": "Signal intelligence", "tiles": [
+            *usb_tiles,
             {"label": "Active decoders", "value": str(sum(v == "running" for v in states.values())), "level": "ok"},
             {"label": "Cached receivers", "value": str(len(receiver_data["data"])),
              "sub": "Discovery cache is stale" if receiver_data["stale"] else "Last discovery snapshot",
@@ -227,7 +232,7 @@ def tool(name, description, properties=None, panel_tool=False):
 
 TOOLS = [tool("get_space_weather", "Read NOAA SWPC Kp, next 72-hour forecast, R/S/G scales, solar flux, alert titles/times and solar wind using existing SPACE WX caches."),
          tool("get_overview", "Read passive activity for every mode, exact fresh aircraft/vessel counts and available retained message counts. Unmonitored modes have no server activity state; null counts are unavailable."),
-         tool("get_status", "Read decoder process status. Idle does not imply a receiver fault."),
+         tool("get_status", "Read decoder process and configured USB hotplug state. A supervised process may be waiting for its receiver. Idle does not imply a receiver fault."),
          tool("list_receivers", "Read cached receiver types without probing hardware. Stale or empty is not proof of absence."),
          tool("get_contacts", "Read aircraft or vessel contacts. Counts are exact; contacts is only the most recent N. Fresh means within the store TTL; total includes stale retained contacts. No WiFi, Bluetooth or pager payloads.", {
              "kind": {"type": "string", "enum": ["aircraft", "vessels"]},

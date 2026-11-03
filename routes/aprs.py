@@ -34,6 +34,7 @@ from utils.logging import sensor_logger as logger
 from utils.responses import api_error, api_success
 from utils.sdr import SDRFactory, SDRType
 from utils.sdr.device_config import apply_device_defaults
+from utils.sdr.hotplug import managed_command
 from utils.sse import sse_stream_fanout
 from utils.validation import (
     validate_device_index,
@@ -1864,7 +1865,7 @@ def start_aprs() -> Response:
         # Start rtl_fm with stdout piped to decoder.
         # stderr is captured via PIPE so errors are reported to the user.
         # NOTE: RTL-SDR Blog V4 may show offset-tuned frequency in logs - this is normal.
-        rtl_process = subprocess.Popen(rtl_cmd, stdout=PIPE, stderr=PIPE, start_new_session=True)
+        rtl_process = subprocess.Popen(managed_command(rtl_cmd), stdout=PIPE, stderr=PIPE, start_new_session=True)
 
         # Start a thread to monitor rtl_fm stderr for errors
         def monitor_rtl_stderr():

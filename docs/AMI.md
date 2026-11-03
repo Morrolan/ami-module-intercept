@@ -195,3 +195,13 @@ claim of live hardware validation or deployment.
 ## Repository name
 
 The fork is `Morrolan/ami-module-intercept`, checked out beside AMI as `ami-module-intercept`. Git remotes should use `git@github.com:Morrolan/ami-module-intercept.git`. New builds publish `ghcr.io/morrolan/ami-module-intercept:sha-<tested-commit>`. Preserve the existing pinned old-package image for rollback until the owner approves a Portainer redeploy. The product name, module id, Compose service and public hostname remain Intercept/`intercept`.
+
+## Opt-in RTL USB hotplug recovery
+
+The companion deployment repo provides an optional identity-checked host publisher and `stacks/intercept/portainer-hotplug.yml`. It exposes only a private directory containing the selected RTL receiver; the Intercept container cannot create device nodes and never sees the host's full USB bus. Follow that repo's reviewed installation, migration and rollback instructions; an initial owner-approved rollout is required.
+
+`INTERCEPT_SDR_HOTPLUG_STATE` enables the receive supervisor only in that stack. Commands are wrapped at the final process-spawn boundary, after tool-path and argument changes. Supported continuous local device0 tools:rtl_fm,rtl_433,rtl_tcp,dump1090/dump1090-fa/readsb,AIS-catcher,acarsdec,dumpvdl2, and rtl_sdr only when streaming to stdout without a finite sample count. Network/Soapy/non-RTL commands, explicit file captures, finite rtl_433 timeouts, timed scanner hops, SatDump jobs, radiosonde auto_rx and third-party pipelines retain their existing behavior. A failed finite job must be restarted through the UI; it is never automatically overwritten. A companion consumer which exits on network disconnect may likewise need its normal Start action.
+
+The supervisor keeps stdin/stdout/stderr ownership stable across USB loss, preserves binary output, and resumes the same argv only after unavailable/changed receiver state. Its child is stopped before replacement; user Stop, worker death and cleanup prevent resurrection. Genuine decoder failure with unchanged receiver state propagates normally. Missing/malformed/stale host heartbeat fails closed. There is no discovery, USB reset, transmission or arbitrary-command HTTP endpoint in this helper.
+
+AMI's existing passive status/overview expose only enabled/available hotplug flags, and its panel shows Waiting for receiver when appropriate. No serial, USB path, generation, observer coordinates or decoded payloads enter AMI tools. A supervised process can remain alive while waiting; the availability flag distinguishes that from active reception. Feature-off command construction and process lifecycle are unchanged.

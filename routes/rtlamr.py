@@ -18,6 +18,7 @@ from utils.logging import sensor_logger as logger
 from utils.process import register_process, unregister_process
 from utils.responses import api_error
 from utils.sdr.device_config import apply_device_defaults
+from utils.sdr.hotplug import managed_command
 from utils.sse import sse_stream_fanout
 from utils.validation import validate_device_index, validate_frequency, validate_gain, validate_ppm
 
@@ -160,7 +161,7 @@ def start_rtlamr() -> Response:
                     if ppm and ppm != "0":
                         rtl_tcp_cmd.extend(["-P", str(ppm)])
 
-                    rtl_tcp_process = subprocess.Popen(rtl_tcp_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    rtl_tcp_process = subprocess.Popen(managed_command(rtl_tcp_cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                     register_process(rtl_tcp_process)
                     rtl_tcp_just_started = True
                     rtl_tcp_cmd_str = " ".join(rtl_tcp_cmd)

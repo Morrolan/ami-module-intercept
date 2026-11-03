@@ -31,6 +31,7 @@ from utils.constants import (
 from utils.event_pipeline import process_event
 from utils.logging import get_logger
 from utils.sdr import SDRFactory, SDRType
+from utils.sdr.hotplug import managed_command, startup_delay
 from utils.sse import sse_stream_fanout
 
 logger = get_logger("intercept.receiver")
@@ -270,6 +271,7 @@ def _start_audio_stream(
         ]
         if bias_t_enabled:
             sdr_cmd.append("-T")
+        sdr_cmd.append("-")  # Explicit stdout for the managed receive pipe.
     else:
         rx_fm_path = find_rx_fm()
         if not rx_fm_path:
@@ -339,7 +341,7 @@ def _start_audio_stream(
                 rtl_err_handle = open(rtl_stderr_log, "w")
                 ffmpeg_err_handle = open(ffmpeg_stderr_log, "w")
                 new_rtl_proc = subprocess.Popen(
-                    sdr_cmd, stdout=subprocess.PIPE, stderr=rtl_err_handle, bufsize=0, start_new_session=True
+                    managed_command(sdr_cmd), stdout=subprocess.PIPE, stderr=rtl_err_handle, bufsize=0, start_new_session=True
                 )
                 new_audio_proc = subprocess.Popen(
                     encoder_cmd,
@@ -358,7 +360,7 @@ def _start_audio_stream(
                     ffmpeg_err_handle.close()
 
             # Brief delay to check if process started successfully
-            time.sleep(0.3)
+            time.sleep(startup_delay(new_rtl_proc, 0.3))
 
             if (new_rtl_proc and new_rtl_proc.poll() is not None) or (
                 new_audio_proc and new_audio_proc.poll() is not None

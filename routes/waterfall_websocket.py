@@ -16,6 +16,8 @@ from typing import Any
 import numpy as np
 from flask import Flask
 
+from utils.sdr.hotplug import managed_command, startup_delay
+
 try:
     from flask_sock import Sock
 
@@ -679,7 +681,7 @@ def init_waterfall_websocket(app: Flask):
                                 f"sr={sample_rate}, fft={fft_size}"
                             )
                             iq_process = subprocess.Popen(
-                                iq_cmd,
+                                managed_command(iq_cmd),
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE,
                                 bufsize=0,
@@ -687,7 +689,7 @@ def init_waterfall_websocket(app: Flask):
                             register_process(iq_process)
 
                             # Brief check that process started
-                            time.sleep(0.3)
+                            time.sleep(startup_delay(iq_process, 0.3))
                             if iq_process.poll() is not None:
                                 stderr_out = ""
                                 if iq_process.stderr:
