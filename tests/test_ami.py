@@ -171,3 +171,19 @@ def test_every_document_loads_theme_once():
         body = file.read_text()
         if "</head>" in body:
             assert body.count("include 'partials/ami_head.html'") == 1, file
+
+
+def test_every_kind_the_journal_sends_is_in_the_manifest(anon_client, tmp_path):
+    manifest = anon_client.get("/.well-known/ami-module.json").get_json()
+    declared = {k["id"]: k for k in manifest["eventKinds"]}
+    journal = ami.EventJournal(tmp_path / "kinds.sqlite")
+    start = 1_800_000_000
+    journal.sample({"adsb": "stopped"}, start)
+    journal.sample({"adsb": "stopped"}, start + 61)
+    with journal.connect() as db:
+        journal._append_gap(db, "ais", True, start, 7200, True)
+        journal._append_gap(db, "ais", False, start + 1, 7200, True)
+    sent = {event["kind"] for _, event in journal.recent()}
+    assert sent >= {"decoder-health", "feed-gap"}
+    assert sent <= set(declared)
+    assert declared["feed-gap"] == {"id": "feed-gap", "label": "Data gaps (feeds gone quiet)", "adminOnly": True}
