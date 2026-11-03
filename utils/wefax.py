@@ -33,6 +33,7 @@ import numpy as np
 from utils.dependencies import get_tool_path
 from utils.logging import get_logger
 from utils.sdr import SDRFactory, SDRType
+from utils.sdr.hotplug import managed_command, startup_delay
 
 logger = get_logger("intercept.wefax")
 
@@ -381,14 +382,14 @@ class WeFaxDecoder:
         logger.info(f"Starting {self._sdr_tool_name}: {' '.join(rtl_cmd)}")
 
         self._sdr_process = subprocess.Popen(
-            rtl_cmd,
+            managed_command(rtl_cmd),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
 
     def _start_pipeline_health_check(self) -> None:
         """Post-spawn health check and decode thread start. Called outside lock."""
-        time.sleep(0.3)
+        time.sleep(startup_delay(self._sdr_process, 0.3))
 
         with self._lock:
             if self._sdr_process and self._sdr_process.poll() is not None:

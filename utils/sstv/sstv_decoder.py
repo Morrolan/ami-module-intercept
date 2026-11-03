@@ -28,6 +28,7 @@ import numpy as np
 # continues to work unchanged.
 from utils.doppler import DopplerInfo, DopplerTracker  # noqa: F401
 from utils.logging import get_logger
+from utils.sdr.hotplug import managed_command
 
 from .constants import ISS_SSTV_FREQ, SAMPLE_RATE
 from .dsp import goertzel_mag, normalize_audio
@@ -289,7 +290,7 @@ class SSTVDecoder:
 
         logger.info(f"Starting rtl_fm: {' '.join(rtl_cmd)}")
 
-        self._rtl_process = subprocess.Popen(rtl_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self._rtl_process = subprocess.Popen(managed_command(rtl_cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         # Start decode thread that reads from rtl_fm stdout
         self._decode_thread = threading.Thread(target=self._decode_audio_stream, daemon=True)
@@ -615,7 +616,7 @@ class SSTVDecoder:
 
         logger.debug(f"Restarting rtl_fm: {' '.join(rtl_cmd)}")
 
-        new_proc = subprocess.Popen(rtl_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        new_proc = subprocess.Popen(managed_command(rtl_cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         # Re-acquire lock to install new process
         with self._lock:

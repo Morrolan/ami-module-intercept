@@ -23,6 +23,7 @@ from utils.process import register_process, safe_terminate, unregister_process
 from utils.responses import api_error
 from utils.sdr import SDRFactory, SDRType
 from utils.sdr.device_config import apply_device_defaults
+from utils.sdr.hotplug import managed_command
 from utils.sse import sse_stream_fanout
 from utils.validation import (
     validate_device_index,
@@ -530,7 +531,7 @@ def start_morse() -> Response:
                 _queue_morse_event({"type": "info", "text": f"[cmd] {full_cmd}"})
 
                 rtl_process = subprocess.Popen(
-                    rtl_cmd,
+                    managed_command(rtl_cmd),
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                     bufsize=0,
