@@ -51,19 +51,26 @@ def test_timed_scan_stop_during_usb_loss_leaves_no_waiting_receiver(client, life
                 threading.Timer(0.1, proc.terminate).start()
             return proc
 
-        monkeypatch.setattr(subprocess, "Popen", source)
-        worker = threading.Thread(target=scanner.scanner_loop, daemon=True)
-        worker.start()
-        try:
-            from tests.test_mode_lifecycle import _wait_for
+        with monkeypatch.context() as acquisition_patch:
+            acquisition_patch.setattr(subprocess, "Popen", source)
+            worker = threading.Thread(target=scanner.scanner_loop, daemon=True)
+            worker.start()
+            try:
+                from tests.test_mode_lifecycle import _wait_for
 
-            _wait_for(lambda: bool(FakeProcess.instances), "scanner did not start")
-            assert client.post("/receiver/scanner/stop", json={}).status_code == 200
-            worker.join(timeout=1)
-            assert not worker.is_alive(), "Stop left the scanner waiting to restart a receiver"
-            assert not any(p.alive for p in FakeProcess.instances)
-        finally:
-            state.scanner_running = False
-            for proc in FakeProcess.instances:
-                proc.kill()
-            worker.join(timeout=2)
+                _wait_for(lambda: bool(FakeProcess.instances), "scanner did not start")
+                assert client.post("/receiver/scanner/stop", json={}).status_code == 200
+                worker.join(timeout=1)
+                assert not worker.is_alive(), "Stop left the scanner waiting to restart a receiver"
+                assert not any(p.alive for p in FakeProcess.instances)
+            finally:
+                state.scanner_running = False
+                for proc in FakeProcess.instances:
+                    proc.kill()
+                worker.join(timeout=2)
+
+
+def test_scanner_process_mock_does_not_leak_to_other_tests():
+    import subprocess
+
+    assert subprocess.Popen.__module__ == "subprocess"
