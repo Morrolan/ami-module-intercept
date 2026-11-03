@@ -9,6 +9,7 @@ import math
 import os
 import re
 import sqlite3
+import sys
 import threading
 import time
 from contextlib import contextmanager
@@ -26,6 +27,21 @@ PROCESSES = {
     "aprs": "aprs_process", "radiosonde": "radiosonde_process", "morse": "morse_process",
     "meteor": "meteor_process", "ook": "ook_process", "dsc": "dsc_process",
 }
+# Silence windows in seconds; ADS-B is eligible 07:00 <= local hour < 23:00.
+FEED_WINDOWS = {"adsb": 60 * 60, "ais": 120 * 60, "acars": 60 * 60, "vdl2": 60 * 60}
+
+
+def feed_snapshot():
+    """Read activity timestamps only from loaded routes, including service receivers."""
+    states = process_states()
+    times = {}
+    for mode in FEED_WINDOWS:
+        route = sys.modules.get(f"routes.{mode}")
+        times[mode] = getattr(route, f"{mode}_last_message_time", None)
+        flag = {"adsb": "adsb_using_service", "ais": "ais_running"}.get(mode)
+        if states.get(mode) == "idle" and flag and getattr(route, flag, False):
+            states[mode] = "running"
+    return states, times
 
 
 def iso(epoch=None):
@@ -120,6 +136,7 @@ class EventJournal:
             db.executescript("""
                 CREATE TABLE IF NOT EXISTS events (seq INTEGER PRIMARY KEY AUTOINCREMENT, created REAL NOT NULL, body TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS state (name TEXT PRIMARY KEY, value TEXT NOT NULL, since REAL NOT NULL, alerted INTEGER NOT NULL DEFAULT 0);
+                CREATE TABLE IF NOT EXISTS feed_state (name TEXT PRIMARY KEY, running INTEGER NOT NULL, quiet_since REAL NOT NULL, alerted INTEGER NOT NULL DEFAULT 0);
             """)
 
     @contextmanager
@@ -151,6 +168,48 @@ class EventJournal:
                     db.execute("UPDATE state SET alerted=1 WHERE name=?", (name,))
             db.execute("DELETE FROM events WHERE created < ?", (now - 48 * 3600,))
 
+    def sample_feeds(self, states, timestamps, now=None):
+        """Persist quiet periods and open gaps across monitor/worker restarts.
+
+        A newly observed run gets a full window. Missing/reset route timestamps
+        never erase an existing quiet period or re-open an already reported gap.
+        Night suppresses new ADS-B warnings; data or a stop clears existing ones.
+        """
+        now = time.time() if now is None else now
+        with self.lock, self.connect() as db:
+            for mode, window in FEED_WINDOWS.items():
+                running = states.get(mode) == "running"
+                old = db.execute("SELECT running,quiet_since,alerted FROM feed_state WHERE name=?", (mode,)).fetchone()
+                was_running, quiet_since, alerted = old or (False, now, False)
+                observed = timestamps.get(mode)
+                valid = type(observed) in (int, float) and math.isfinite(observed) and 0 < observed <= now
+                arrived = running and valid and observed > quiet_since
+                if alerted and (not running or arrived):
+                    self._append_gap(db, mode, False, now, now - quiet_since, running)
+                    alerted = False
+                if not running or not was_running:
+                    quiet_since = now
+                elif arrived:
+                    quiet_since = observed
+                eligible = mode != "adsb" or 7 <= datetime.fromtimestamp(now).hour < 23
+                if running and eligible and not alerted and now - quiet_since >= window:
+                    self._append_gap(db, mode, True, now, now - quiet_since, running)
+                    alerted = True
+                db.execute("INSERT OR REPLACE INTO feed_state VALUES (?,?,?,?)",
+                           (mode, running, quiet_since, alerted))
+
+    @staticmethod
+    def _append_gap(db, mode, failed, now, quiet, running):
+        key = f"feed-gap:{mode}"
+        label = "ADS-B" if mode == "adsb" else mode.upper()
+        event = {"module": "intercept", "kind": "feed-gap", "severity": "warning" if failed else "info",
+                 "title": f"{label} has heard nothing for {int(quiet // 60)} minutes" if failed else f"Resolved: {label} data gap",
+                 "body": "No data has arrived while the decoder is running." if failed else (
+                     "Data is arriving again." if running else "The decoder is no longer running."),
+                 "eventTime": iso(now), "observedAt": iso(now), "users": None,
+                 "dedupeKey": key if failed else f"{key}:resolved:{now}", "clears": None if failed else key}
+        EventJournal._store_event(db, event, now)
+
     @staticmethod
     def _append(db, name, failed, now):
         key = f"decoder:{name}:critical"
@@ -159,6 +218,10 @@ class EventJournal:
                  "body": "The decoder process has remained stopped for at least one minute." if failed else "The decoder is running again or has been released.",
                  "eventTime": iso(now), "observedAt": iso(now), "users": None,
                  "dedupeKey": key if failed else f"{key}:resolved:{now}", "clears": None if failed else key}
+        EventJournal._store_event(db, event, now)
+
+    @staticmethod
+    def _store_event(db, event, now):
         cur = db.execute("INSERT INTO events(created,body) VALUES (?,?)", (now, json.dumps(event)))
         event["id"] = f"intercept:{cur.lastrowid}"
         db.execute("UPDATE events SET body=? WHERE seq=?", (json.dumps(event), cur.lastrowid))
@@ -193,6 +256,8 @@ def _monitor():
     while True:
         try:
             _journal.sample(process_states())
+            states, timestamps = feed_snapshot()
+            _journal.sample_feeds(states, timestamps)
         except Exception:
             log.exception("AMI health sample failed")
         time.sleep(15)
