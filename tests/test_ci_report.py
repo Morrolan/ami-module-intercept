@@ -80,7 +80,12 @@ def test_real_pytest_xunit2_failure(tmp_path):
     assert 'missing test parts: junit-m-z.xml' in report['error']
 
 
-def test_combined_coverage_unions_disjoint_execution(tmp_path):
+@pytest.mark.parametrize('outer_file', [None, '.coverage.a-l'])
+def test_combined_coverage_unions_disjoint_execution(tmp_path, monkeypatch, outer_file):
+    if outer_file:
+        monkeypatch.setenv('COVERAGE_FILE', outer_file)
+    else:
+        monkeypatch.delenv('COVERAGE_FILE', raising=False)
     source = tmp_path / 'sample.py'
     source.write_text('import os\nif os.environ["HALF"] == "a-l":\n    value = 1\nelse:\n    value = 2\n')
     import os
@@ -90,8 +95,12 @@ def test_combined_coverage_unions_disjoint_execution(tmp_path):
         subprocess.run([sys.executable, '-m', 'coverage', 'run', '--branch', str(source)],
                        cwd=tmp_path, env=env, check=True)
         (tmp_path / f'junit-{group}.xml').write_text('<testsuite><testcase name="pass"/></testsuite>')
-    subprocess.run([sys.executable, '-m', 'coverage', 'combine', '.'], cwd=tmp_path, check=True)
-    subprocess.run([sys.executable, '-m', 'coverage', 'xml', '-o', 'coverage.xml'], cwd=tmp_path, check=True)
+    # Keep the fixture's combined data separate from pytest-cov's shard file.
+    combined_env = dict(os.environ, COVERAGE_FILE=str(tmp_path / '.coverage'))
+    subprocess.run([sys.executable, '-m', 'coverage', 'combine', '.'],
+                   cwd=tmp_path, env=combined_env, check=True)
+    subprocess.run([sys.executable, '-m', 'coverage', 'xml', '-o', 'coverage.xml'],
+                   cwd=tmp_path, env=combined_env, check=True)
     report = run_report(tmp_path)
     assert report['coverage'] == {'lines': 100.0, 'branches': 100.0, 'functions': None}
     assert 'error' not in report

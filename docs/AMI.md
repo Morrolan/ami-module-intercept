@@ -191,3 +191,7 @@ only to the Flipper service, with its actual host device GID. See the sibling
 ami-deploy Flipper rollout instructions. A replug can change USB paths; verify
 identity and refresh mappings before restarting. Feature branches are not a
 claim of live hardware validation or deployment.
+
+## Repository name
+
+The fork is `Morrolan/ami-module-intercept`, checked out beside AMI as `ami-module-intercept`. Git remotes should use `git@github.com:Morrolan/ami-module-intercept.git`. New builds publish `ghcr.io/morrolan/ami-module-intercept:sha-<tested-commit>`. Preserve the existing pinned old-package image for rollback until the owner approves a Portainer redeploy. The product name, module id, Compose service and public hostname remain Intercept/`intercept`.
