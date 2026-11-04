@@ -80,3 +80,33 @@ def test_account_sync_and_offline(browser, prefs_url):
     finally:
         first.close()
         second.close()
+
+
+def test_remote_adsb_save_restores_in_fresh_browser(browser, prefs_url):
+    contexts = [browser.new_context(), browser.new_context(viewport={"width": 390, "height": 844})]
+    try:
+        for context in contexts:
+            local_only(context, prefs_url)
+            context.add_init_script("""HTMLMediaElement.prototype.play = () => Promise.resolve();
+                if (window.speechSynthesis) window.speechSynthesis.speak = () => {};""")
+        page = sign_in(contexts[0], prefs_url)
+        page.goto(prefs_url + '/adsb/dashboard', wait_until='domcontentloaded')
+        page.get_by_label('Remote', exact=True).check()
+        page.get_by_label('Remote ADS-B host', exact=True).fill('10.10.42.10')
+        page.get_by_label('Remote ADS-B port', exact=True).fill('30003')
+        page.get_by_role('button', name='Save remote ADS-B receiver').click()
+        page.wait_for_function("document.getElementById('remoteSbsSaveStatus').textContent === 'Saved to your account.'")
+        fresh = sign_in(contexts[1], prefs_url)
+        fresh.goto(prefs_url + '/adsb/dashboard?ami=1', wait_until='domcontentloaded')
+        fresh.wait_for_function("document.getElementById('useRemoteDump1090').checked")
+        assert fresh.get_by_label('Remote ADS-B host', exact=True).input_value() == '10.10.42.10'
+        assert fresh.get_by_label('Remote ADS-B port', exact=True).input_value() == '30003'
+        button = fresh.get_by_role('button', name='Save remote ADS-B receiver')
+        button.scroll_into_view_if_needed()
+        assert button.is_visible()
+        contexts[1].route('**/api/me/prefs', lambda route: route.fulfill(status=503, body='unavailable'))
+        button.click()
+        fresh.wait_for_function("document.getElementById('remoteSbsSaveStatus').textContent.includes('Could not save')")
+    finally:
+        for context in contexts:
+            context.close()

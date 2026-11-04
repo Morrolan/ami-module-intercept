@@ -15,7 +15,7 @@ SYNCED_KEYS = frozenset({
     'watchMacs', 'pagerPresets', 'pagerFilters', 'ookFreqPresets', 'wfBookmarks',
     'mutedAddresses', 'tscmIgnoreList', 'biasTEnabled', 'adsbBiasTEnabled',
     'reconEnabled', 'intercept.morse.settings.v3', 'satellite.dashboard.receiver',
-    'adsb.limitRange', 'adsb.retentionMs', 'adsbHistoryWindowMinutes',
+    'adsb.limitRange', 'adsb.retentionMs', 'adsbHistoryWindowMinutes', 'adsb.remoteReceiver',
 })
 # LAYOUT_KEYS/LAYOUT_PREFIXES in settings-manager.js are all per device.
 PER_DEVICE_KEYS = (
