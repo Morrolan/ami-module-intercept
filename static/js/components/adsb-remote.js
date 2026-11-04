@@ -11,11 +11,16 @@
     document.addEventListener('DOMContentLoaded', () => {
         const button = document.getElementById('saveRemoteSbs');
         if (!button) return;
+        const bootstrap = document.getElementById('intercept-account-prefs');
+        if (!bootstrap) {
+            button.hidden = true;
+            return;
+        }
         const host = document.getElementById('remoteSbsHost');
         const port = document.getElementById('remoteSbsPort');
         const enabled = document.getElementById('useRemoteDump1090');
         const status = document.getElementById('remoteSbsSaveStatus');
-        const config = JSON.parse(document.getElementById('intercept-account-prefs').textContent);
+        const config = JSON.parse(bootstrap.textContent);
         try {
             const saved = JSON.parse(config.prefs[key] || 'null');
             if (valid(saved)) {

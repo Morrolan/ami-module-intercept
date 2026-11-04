@@ -3,13 +3,14 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const source = fs.readFileSync('static/js/components/adsb-remote.js', 'utf8');
 const key = 'adsb.remoteReceiver';
-function browser(server = {}) {
+function browser(server = {}, account = true) {
     const elements = {}, events = {}, calls = [];
     for (const id of ['saveRemoteSbs', 'remoteSbsHost', 'remoteSbsPort', 'useRemoteDump1090', 'remoteSbsSaveStatus']) {
         elements[id] = { value: id === 'remoteSbsPort' ? '30003' : '', checked: false,
             textContent: '', listeners: {}, addEventListener(name, fn) { this.listeners[name] = fn; } };
     }
     elements['intercept-account-prefs'] = { textContent: JSON.stringify({ owner: '7', prefs: server }) };
+    if (!account) delete elements['intercept-account-prefs'];
     let fail = false;
     const context = vm.createContext({
         document: { getElementById: id => elements[id], addEventListener: (name, fn) => { events[name] = fn; } },
@@ -27,6 +28,7 @@ function browser(server = {}) {
     return { elements, calls, save: () => elements.saveRemoteSbs.listeners.click(), offline() { fail = true; } };
 }
 (async () => {
+    assert.equal(browser({}, false).elements.saveRemoteSbs.hidden, true);
     const server = {}, first = browser(server), e = first.elements;
     e.remoteSbsHost.value = ' 10.10.42.10 ';
     e.useRemoteDump1090.checked = true;
