@@ -2249,6 +2249,12 @@ ACARS: ${r.statistics.acarsMessages} messages`;
             if (!radarMap) return;
             window.radarMap = radarMap;
 
+            // Aircraft details and message panels can resize the grid without
+            // resizing the window. Keep Leaflet's tile area and projection current.
+            const mapResizeObserver = new ResizeObserver(() => radarMap.invalidateSize({ pan: false }));
+            mapResizeObserver.observe(container);
+            radarMap.once('unload', () => mapResizeObserver.disconnect());
+
             // Fix map size after init
             setTimeout(() => { if (radarMap) radarMap.invalidateSize(); }, 200);
             setTimeout(() => { if (radarMap) radarMap.invalidateSize(); }, 500);

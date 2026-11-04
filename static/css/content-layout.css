@@ -30,6 +30,19 @@ html body[data-mode="adsb"] .main-display {
     align-self: start;
 }
 
+/* Desktop aircraft tracking fills the available viewport. The grid can still
+   grow beyond it when selected-target details or the tracked list need room. */
+@media (min-width: 1024px) {
+    html body[data-mode="adsb"] .dashboard {
+        flex: 1;
+        grid-template-rows: 1fr auto;
+    }
+    html body[data-mode="adsb"] .main-display {
+        height: auto;
+        align-self: stretch;
+    }
+}
+
 /* The shell grows with information in either column. Mobile navigation remains
    an explicit drawer with one scroll area, rather than a nested detail pane. */
 html body :is(.main-content, .content-wrapper, .content-main, .output-panel,
