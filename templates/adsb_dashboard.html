@@ -1994,6 +1994,7 @@ ACARS: ${r.statistics.acarsMessages} messages`;
 
             if (!devices || devices.length === 0) {
                 select.innerHTML = `<option value="rtlsdr:0">${emptyLabel}</option>`;
+                if (select.id === 'adsbDeviceSelect') window.AdsbRemoteReceiver?.refresh();
                 return;
             }
 
@@ -2007,6 +2008,7 @@ ACARS: ${r.statistics.acarsMessages} messages`;
                 option.textContent = `SDR ${idx}: ${dev.name || dev.type || 'SDR'}`;
                 select.appendChild(option);
             });
+            if (select.id === 'adsbDeviceSelect') window.AdsbRemoteReceiver?.refresh();
         }
 
         function showDeviceDetectionPendingState() {
@@ -2069,7 +2071,7 @@ ACARS: ${r.statistics.acarsMessages} messages`;
                 }
 
                 if (adsbSelect) {
-                    adsbSelect.value = adsbSelect.options[0]?.value || 'rtlsdr:0';
+                    window.AdsbRemoteReceiver?.refresh();
                 }
                 if (airbandSelect && devices.length > 1) {
                     airbandSelect.value = airbandSelect.options[1]?.value || airbandSelect.options[0]?.value || 'rtlsdr:0';
@@ -2084,6 +2086,7 @@ ACARS: ${r.statistics.acarsMessages} messages`;
             }).catch(() => {
                 document.getElementById('adsbDeviceSelect').innerHTML = '<option value="rtlsdr:0">Error</option>';
                 document.getElementById('airbandDeviceSelect').innerHTML = '<option value="rtlsdr:0">Error</option>';
+                window.AdsbRemoteReceiver?.refresh();
                 return [];
             });
         }
@@ -2304,9 +2307,12 @@ ACARS: ${r.statistics.acarsMessages} messages`;
             const useRemote = document.getElementById('useRemoteDump1090').checked;
             const controls = document.querySelector('.remote-dump1090-controls');
             controls.style.display = useRemote ? 'flex' : 'none';
+            window.AdsbRemoteReceiver?.refresh();
+            updateSourceIndicator();
         }
 
         function getRemoteDump1090Config() {
+            if (window.AdsbRemoteReceiver) return window.AdsbRemoteReceiver.getConfig();
             const useRemote = document.getElementById('useRemoteDump1090').checked;
             if (!useRemote) return null;
 
@@ -2398,16 +2404,15 @@ ACARS: ${r.statistics.acarsMessages} messages`;
                     }
                 }
 
-                const requestBody = {
+                const requestBody = remoteConfig ? {
+                    remote_sbs_host: remoteConfig.host,
+                    remote_sbs_port: remoteConfig.port
+                } : {
                     device: adsbDevice,
                     sdr_type: adsbSdrType,
                     gain: parseInt(document.getElementById('adsbGainInput')?.value || '40'),
                     bias_t: getBiasTEnabled()
                 };
-                if (remoteConfig) {
-                    requestBody.remote_sbs_host = remoteConfig.host;
-                    requestBody.remote_sbs_port = remoteConfig.port;
-                }
                 isTrackingStarting = true;
                 btn.disabled = true;
                 btn.textContent = 'STARTING...';
@@ -2441,6 +2446,7 @@ ACARS: ${r.statistics.acarsMessages} messages`;
                         isTrackingStarting = false;
                         adsbActiveDevice = adsbDevice;  // Track which device is being used
                         adsbTrackingSource = useAgent ? adsbCurrentAgent : 'local';  // Track which source started tracking
+                        updateSourceIndicator();
                         btn.textContent = 'STOP';
                         btn.classList.add('active');
                         btn.disabled = false;
@@ -2526,6 +2532,7 @@ ACARS: ${r.statistics.acarsMessages} messages`;
                 isTracking = false;
                 adsbActiveDevice = null;
                 adsbTrackingSource = null;  // Reset tracking source
+                updateSourceIndicator();
                 btn.textContent = 'START';
                 btn.classList.remove('active');
                 document.getElementById('trackingDot').classList.add('inactive');
@@ -2576,7 +2583,8 @@ ACARS: ${r.statistics.acarsMessages} messages`;
 
                     const sessionDevice = session.device_index;
                     const sessionSdrType = session.sdr_type || 'rtlsdr';
-                    if (sessionDevice !== null && sessionDevice !== undefined) {
+                    window.AdsbRemoteReceiver?.restoreSession(session);
+                    if (sessionSdrType !== 'remote' && sessionDevice !== null && sessionDevice !== undefined) {
                         adsbActiveDevice = sessionDevice;
                         const adsbSelect = document.getElementById('adsbDeviceSelect');
                         if (adsbSelect) {
@@ -2588,6 +2596,7 @@ ACARS: ${r.statistics.acarsMessages} messages`;
                     // Auto-connect to the running session
                     isTracking = true;
                     adsbTrackingSource = 'local';
+                    updateSourceIndicator();
                     startEventStream();
                     drawRangeRings();
                     startSessionTimer();
@@ -2621,6 +2630,12 @@ ACARS: ${r.statistics.acarsMessages} messages`;
         }
 
         async function tryAutoStartLocal() {
+            const remoteConfig = getRemoteDump1090Config();
+            if (remoteConfig === false) return;
+            if (remoteConfig) {
+                if (!isTracking && !isTrackingStarting) await toggleTracking();
+                return;
+            }
             // Try to auto-start local ADS-B tracking if SDR is available
             try {
                 // Check if any SDR devices are available
@@ -6142,9 +6157,12 @@ ACARS: ${r.statistics.acarsMessages} messages`;
             const sourceEl = document.getElementById('stripSource');
             if (!sourceEl) return;
 
-            const name = getAdsbAgentName();
+            window.AdsbRemoteReceiver?.setTracking(Boolean(isTracking));
+            window.AdsbRemoteReceiver?.refresh();
+            const remoteLabel = window.AdsbRemoteReceiver?.getLabel();
+            const name = remoteLabel || getAdsbAgentName();
             sourceEl.textContent = name;
-            sourceEl.title = name === 'Local' ? 'Using local device' : `Using remote agent: ${name}`;
+            sourceEl.title = remoteLabel || (name === 'Local' ? 'Using local device' : `Using remote agent: ${name}`);
 
             // Update color based on source
             if (name === 'Local') {
@@ -6207,6 +6225,7 @@ ACARS: ${r.statistics.acarsMessages} messages`;
                     });
                 }
             });
+            window.AdsbRemoteReceiver?.refresh();
 
         }
 

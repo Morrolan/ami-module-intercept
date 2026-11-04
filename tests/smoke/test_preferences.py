@@ -9,6 +9,14 @@ from werkzeug.serving import make_server
 from utils.database import get_db
 
 
+@pytest.fixture(autouse=True)
+def reset_login_limit():
+    import app as runtime
+
+    if hasattr(runtime.limiter, 'reset'):
+        runtime.limiter.reset()
+
+
 @pytest.fixture(scope='module')
 def prefs_url(app):
     # Unlike the general smoke fixture, authenticate real accounts here.
@@ -110,3 +118,68 @@ def test_remote_adsb_save_restores_in_fresh_browser(browser, prefs_url):
     finally:
         for context in contexts:
             context.close()
+
+
+@pytest.mark.parametrize('viewport,devices,start_mode', [
+    ({"width": 1600, "height": 1000}, [{"index": 0, "sdr_type": "rtlsdr", "name": "Local RTL"}], "manual"),
+    ({"width": 390, "height": 844}, [], "auto"),
+])
+def test_saved_remote_is_selectable_and_start_uses_it(browser, prefs_url, viewport, devices, start_mode):
+    import json
+
+    context = browser.new_context(viewport=viewport)
+    calls = []
+    active = {"tracking_active": False}
+    try:
+        local_only(context, prefs_url)
+        context.add_init_script("""HTMLMediaElement.prototype.play = () => Promise.resolve();
+            if (window.speechSynthesis) window.speechSynthesis.speak = () => {};""")
+        context.route('**/devices', lambda r: r.fulfill(json=devices))
+        context.route('**/adsb/session', lambda r: r.fulfill(json=active))
+
+        def start(route):
+            calls.append(json.loads(route.request.post_data))
+            active.update(tracking_active=True, session={"sdr_type": "remote", "device_index": 0,
+                          "remote_host": "10.10.42.6", "remote_port": 30003})
+            route.fulfill(json={"status": "started", "session": active["session"]})
+
+        context.route('**/adsb/start', start)
+        context.route('**/adsb/stream', lambda r: r.fulfill(content_type='text/event-stream', body=''))
+        page = sign_in(context, prefs_url)
+        page.goto(prefs_url + '/adsb/dashboard', wait_until='domcontentloaded')
+        page.get_by_label('Remote', exact=True).check()
+        page.get_by_label('Remote ADS-B host', exact=True).fill('10.10.42.6')
+        page.get_by_label('Remote ADS-B port', exact=True).fill('30003')
+        page.get_by_role('button', name='Save remote ADS-B receiver').click()
+        page.wait_for_function("document.getElementById('remoteSbsSaveStatus').textContent === 'Saved to your account.'")
+        page.wait_for_function("Array.from(document.getElementById('adsbDeviceSelect').options).some(o => o.value === 'remote-sbs')", timeout=2000)
+        assert page.locator('#adsbDeviceSelect').input_value() == 'remote-sbs'
+        page.evaluate('() => initDeviceSelectors(true)')
+        assert page.locator('#adsbDeviceSelect').input_value() == 'remote-sbs'
+        page.select_option('#adsbDeviceSelect', 'rtlsdr:0')
+        assert not page.get_by_label('Remote', exact=True).is_checked()
+        page.select_option('#adsbDeviceSelect', 'remote-sbs')
+        assert page.get_by_label('Remote', exact=True).is_checked()
+        page.evaluate("() => { adsbCurrentAgent = '7'; updateSourceIndicator(); }")
+        assert page.locator('#adsbDeviceSelect option[value="remote-sbs"]').count() == 0
+        assert not page.locator('#adsbGainInput').is_disabled()
+        assert not page.locator('#adsbBiasT').is_disabled()
+        page.evaluate("() => { adsbCurrentAgent = 'local'; updateSourceIndicator(); }")
+        assert page.locator('#adsbDeviceSelect').input_value() == 'remote-sbs'
+        if start_mode == 'auto':
+            page.evaluate('() => tryAutoStartLocal()')
+        else:
+            page.locator('#startBtn').click()
+        page.wait_for_function("document.getElementById('startBtn').textContent === 'STOP'", timeout=2000)
+        assert calls == [{"remote_sbs_host": "10.10.42.6", "remote_sbs_port": 30003}]
+        assert '10.10.42.6' in page.locator('#stripSource').inner_text()
+        page.reload(wait_until='domcontentloaded')
+        page.wait_for_function("document.getElementById('adsbDeviceSelect').value === 'remote-sbs'", timeout=5000)
+        assert '10.10.42.6' in page.locator('#stripSource').inner_text()
+        assert page.locator('#adsbDeviceSelect').is_disabled()
+        page.evaluate("() => { const select = document.getElementById('adsbDeviceSelect'); select.value = 'rtlsdr:0'; select.dispatchEvent(new Event('change')); }")
+        assert page.get_by_label('Remote', exact=True).is_checked()
+        assert page.locator('#adsbDeviceSelect').input_value() == 'remote-sbs'
+        assert '10.10.42.6' in page.locator('#stripSource').inner_text()
+    finally:
+        context.close()

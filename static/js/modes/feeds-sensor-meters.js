@@ -369,7 +369,7 @@ function addSensorReading(data) {
         sensorFilterBar.applyFilters();
     }
 
-    if (autoScroll) output.scrollTop = 0;
+    if (autoScroll) InterceptLayout.scrollToEdge(output, 'start');
 
     // Keep list manageable
     const cards = output.querySelectorAll('.signal-card');
