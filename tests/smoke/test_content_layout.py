@@ -125,6 +125,17 @@ def assert_information_grows(page, selector):
 def test_every_mode_information_flows(browser, base_url, embedded, width, height, theme):
     context = browser.new_context(viewport={"width": width, "height": height})
     context.add_init_script(INIT_SCRIPT % theme)
+    # Software 3D rendering can starve animation frames in the multi-mode sweep,
+    # timing out Playwright's stability check even while the button stays still.
+    # Exercise the production no-WebGL fallback for this information-flow check;
+    # page-load and dedicated visual/detail checks retain normal graphics.
+    context.add_init_script("""(() => {
+      const original = HTMLCanvasElement.prototype.getContext;
+      HTMLCanvasElement.prototype.getContext = function(type, ...args) {
+        if (/^(webgl2?|experimental-webgl)$/.test(type)) return null;
+        return original.call(this, type, ...args);
+      };
+    })();""")
     context.route("**/*", lambda route: route_layout_request(route, base_url))
     page = context.new_page()
     page.set_default_timeout(5000)
