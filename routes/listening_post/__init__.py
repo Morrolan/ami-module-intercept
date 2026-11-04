@@ -545,24 +545,35 @@ def _stop_audio_stream_internal():
         time.sleep(0.15)
 
 
-def _stop_waterfall_internal() -> None:
+def _stop_waterfall_internal() -> bool:
     """Stop the waterfall display and release resources."""
-    global waterfall_running, waterfall_process, waterfall_active_device, waterfall_active_sdr_type
+    global waterfall_running, waterfall_process, waterfall_thread, waterfall_active_device, waterfall_active_sdr_type
 
-    waterfall_running = False
-    if waterfall_process and waterfall_process.poll() is None:
-        try:
-            waterfall_process.terminate()
-            waterfall_process.wait(timeout=1)
-        except Exception:
-            with contextlib.suppress(Exception):
-                waterfall_process.kill()
-        waterfall_process = None
+    with waterfall_lock:
+        waterfall_running = False
+        if waterfall_process and waterfall_process.poll() is None:
+            try:
+                waterfall_process.terminate()
+                waterfall_process.wait(timeout=1)
+            except Exception:
+                with contextlib.suppress(Exception):
+                    waterfall_process.kill()
+            waterfall_process = None
 
-    if waterfall_active_device is not None:
-        app_module.release_sdr_device(waterfall_active_device, waterfall_active_sdr_type)
-        waterfall_active_device = None
-        waterfall_active_sdr_type = "rtlsdr"
+        # Process creation can finish after Stop first checks waterfall_process.
+        # Wait for the cancelled worker before releasing its receiver claim.
+        worker = waterfall_thread
+        if worker and worker is not threading.current_thread():
+            worker.join(timeout=3)
+            if worker.is_alive():
+                return False
+        waterfall_thread = None
+
+        if waterfall_active_device is not None:
+            app_module.release_sdr_device(waterfall_active_device, waterfall_active_sdr_type)
+            waterfall_active_device = None
+            waterfall_active_sdr_type = "rtlsdr"
+        return True
 
 
 # ============================================
