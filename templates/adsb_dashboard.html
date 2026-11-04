@@ -6157,9 +6157,10 @@ ACARS: ${r.statistics.acarsMessages} messages`;
             const sourceEl = document.getElementById('stripSource');
             if (!sourceEl) return;
 
+            window.AdsbRemoteReceiver?.setTracking(Boolean(isTracking));
+            window.AdsbRemoteReceiver?.refresh();
             const remoteLabel = window.AdsbRemoteReceiver?.getLabel();
             const name = remoteLabel || getAdsbAgentName();
-            window.AdsbRemoteReceiver?.setTracking(Boolean(isTracking));
             sourceEl.textContent = name;
             sourceEl.title = remoteLabel || (name === 'Local' ? 'Using local device' : `Using remote agent: ${name}`);
 

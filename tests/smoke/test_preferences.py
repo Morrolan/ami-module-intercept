@@ -160,6 +160,10 @@ def test_saved_remote_is_selectable_and_start_uses_it(browser, prefs_url, viewpo
         assert not page.get_by_label('Remote', exact=True).is_checked()
         page.select_option('#adsbDeviceSelect', 'remote-sbs')
         assert page.get_by_label('Remote', exact=True).is_checked()
+        page.evaluate("() => { adsbCurrentAgent = '7'; updateSourceIndicator(); }")
+        assert page.locator('#adsbDeviceSelect option[value="remote-sbs"]').count() == 0
+        page.evaluate("() => { adsbCurrentAgent = 'local'; updateSourceIndicator(); }")
+        assert page.locator('#adsbDeviceSelect').input_value() == 'remote-sbs'
         if start_mode == 'auto':
             page.evaluate('() => tryAutoStartLocal()')
         else:
