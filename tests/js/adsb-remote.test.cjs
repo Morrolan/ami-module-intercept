@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
-const source = fs.readFileSync('static/js/modes/adsb-remote.js', 'utf8');
+const source = fs.readFileSync('static/js/components/adsb-remote.js', 'utf8');
 const key = 'adsb.remoteReceiver';
 function browser(server = {}) {
     const elements = {}, events = {}, calls = [];
