@@ -350,7 +350,7 @@ var OokMode = (function () {
 
         panel.appendChild(div);
         if (typeof autoScroll === 'undefined' || autoScroll) {
-            panel.scrollTop = panel.scrollHeight;
+            InterceptLayout.scrollToEdge(panel, 'end');
         }
     }
 

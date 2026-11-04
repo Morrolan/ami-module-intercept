@@ -903,7 +903,7 @@ const SubGhz = (function() {
 
         entry.innerHTML = html;
         el.appendChild(entry);
-        el.scrollTop = el.scrollHeight;
+        InterceptLayout.scrollToEdge(el, 'end');
 
         while (el.children.length > 200) {
             el.removeChild(el.firstChild);
@@ -3008,7 +3008,7 @@ const SubGhz = (function() {
         entry.innerHTML = '<span class="subghz-log-ts">' + escapeHtml(ts) + '</span>' +
                           '<span class="subghz-log-msg ' + escapeHtml(level) + '">' + escapeHtml(msg) + '</span>';
         log.appendChild(entry);
-        log.scrollTop = log.scrollHeight;
+        InterceptLayout.scrollToEdge(log, 'end');
 
         while (log.children.length > 100) {
             log.removeChild(log.firstChild);

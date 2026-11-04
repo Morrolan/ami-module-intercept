@@ -663,7 +663,7 @@ function addMessage(msg) {
 
     // Auto-scroll to top (newest messages)
     if (autoScroll) {
-        output.scrollTop = 0;
+        InterceptLayout.scrollToEdge(output, 'start');
     }
 
     // Limit messages displayed (keep placeholder/empty-state)

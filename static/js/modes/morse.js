@@ -721,7 +721,7 @@ var MorseMode = (function () {
             span.textContent = ch;
             span.title = (morse || '') + ' (' + (timestamp || '--:--:--') + ')';
             panel.appendChild(span);
-            panel.scrollTop = panel.scrollHeight;
+            InterceptLayout.scrollToEdge(panel, 'end');
         }
 
         updateCharCounts();
@@ -735,7 +735,7 @@ var MorseMode = (function () {
         span.className = 'morse-word-space';
         span.textContent = ' ';
         panel.appendChild(span);
-        panel.scrollTop = panel.scrollHeight;
+        InterceptLayout.scrollToEdge(panel, 'end');
     }
 
     function appendRawToken(token) {
@@ -748,7 +748,7 @@ var MorseMode = (function () {
         var rawText = el('morseRawText');
         if (rawText) {
             rawText.textContent = state.rawLog.join('');
-            rawText.scrollTop = rawText.scrollHeight;
+            InterceptLayout.scrollToEdge(rawText, 'end');
         }
     }
 
@@ -961,7 +961,7 @@ var MorseMode = (function () {
         while (log.children.length > 32) {
             log.removeChild(log.firstChild);
         }
-        log.scrollTop = log.scrollHeight;
+        InterceptLayout.scrollToEdge(log, 'end');
     }
 
     function clearDiagLog() {
