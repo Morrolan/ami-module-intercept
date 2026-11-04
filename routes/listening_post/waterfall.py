@@ -159,6 +159,8 @@ def _waterfall_loop_iq(sdr_type: SDRType):
         )
 
         # Detect immediate startup failures
+        if not _state.waterfall_running:
+            return
         time.sleep(0.35)
         if _state.waterfall_process.poll() is not None:
             stderr_text = ""
@@ -298,6 +300,9 @@ def _waterfall_loop_rtl_power():
             errors="replace",
         )
 
+        if not _state.waterfall_running:
+            return
+
         # Detect immediate startup failures (e.g. device busy / no device).
         time.sleep(0.35)
         if _state.waterfall_process.poll() is not None:
@@ -409,6 +414,8 @@ def _waterfall_loop_rtl_power():
 def start_waterfall() -> Response:
     """Start the waterfall/spectrogram display."""
     with _state.waterfall_lock:
+        if not _state.waterfall_running and _state.waterfall_thread and _state.waterfall_thread.is_alive():
+            return jsonify({"status": "error", "message": "Previous waterfall capture is still stopping"}), 409
         if _state.waterfall_running:
             return jsonify(
                 {
@@ -468,11 +475,12 @@ def start_waterfall() -> Response:
     if error:
         return jsonify({"status": "error", "error_type": "DEVICE_BUSY", "message": error}), 409
 
-    _state.waterfall_active_device = _state.waterfall_config["device"]
-    _state.waterfall_active_sdr_type = sdr_type_str
-    _state.waterfall_running = True
-    _state.waterfall_thread = threading.Thread(target=_waterfall_loop, daemon=True)
-    _state.waterfall_thread.start()
+    with _state.waterfall_lock:
+        _state.waterfall_active_device = _state.waterfall_config["device"]
+        _state.waterfall_active_sdr_type = sdr_type_str
+        _state.waterfall_running = True
+        _state.waterfall_thread = threading.Thread(target=_waterfall_loop, daemon=True)
+        _state.waterfall_thread.start()
 
     return jsonify({"status": "started", "config": _state.waterfall_config})
 
@@ -480,7 +488,8 @@ def start_waterfall() -> Response:
 @receiver_bp.route("/waterfall/stop", methods=["POST"])
 def stop_waterfall() -> Response:
     """Stop the waterfall display."""
-    _stop_waterfall_internal()
+    if not _stop_waterfall_internal():
+        return jsonify({"status": "error", "message": "Waterfall is still stopping; retry Stop before restarting"}), 503
 
     return jsonify({"status": "stopped"})
 

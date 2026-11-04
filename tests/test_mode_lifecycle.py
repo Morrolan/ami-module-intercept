@@ -540,3 +540,39 @@ def test_subghz_missing_tool_is_not_a_conflict(client, lifecycle, mode):
     assert resp.status_code == 400, (resp.status_code, _message(resp))
     assert resp.get_json()["error_type"] == "TOOL_MISSING"
     assert "not found" in _message(resp)
+
+
+@pytest.mark.parametrize("sdr_type", ["rtlsdr", "hackrf"])
+def test_waterfall_stop_during_process_creation_leaves_no_receiver(client, lifecycle, sdr_type):
+    import routes.listening_post as state
+
+    spec = lifecycle("rx_waterfall")
+    entered, release = threading.Event(), threading.Event()
+
+    def slow_popen(*args, **kwargs):
+        entered.set()
+        assert release.wait(5), "test did not release process startup"
+        return FakeProcess(*args, **kwargs)
+
+    with _decoders(installed=True), patch("subprocess.Popen", side_effect=slow_popen):
+        assert client.post(spec["start"], json={"sdr_type": sdr_type}).status_code == 200
+        assert entered.wait(2), "waterfall did not attempt process startup"
+        worker = state.waterfall_thread
+        try:
+            result = {}
+            stopping = threading.Thread(target=lambda: result.setdefault("response", client.post(spec["stop"], json={})))
+            stopping.start()
+            _wait_for(lambda: not state.waterfall_running, "Stop did not cancel waterfall")
+            assert app_module.sdr_device_registry, "Stop released the receiver before startup finished"
+            release.set()
+            stopping.join(3)
+            assert not stopping.is_alive(), "Stop did not finish after startup was released"
+            assert result["response"].status_code == 200
+            assert not _live(), "waterfall process outlived Stop during startup"
+            assert not app_module.sdr_device_registry
+        finally:
+            release.set()
+            state.waterfall_running = False
+            for proc in FakeProcess.instances:
+                proc.kill()
+            worker.join(2)
