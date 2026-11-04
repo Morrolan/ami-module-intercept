@@ -134,3 +134,13 @@ def test_all_document_heads_bootstrap_first():
         source = path.read_text()
         if re.search(r'^\s*<head>', source, re.M):
             assert re.search(r"<head>\s*{% include 'partials/preferences_head.html' %}", source), path
+
+
+def test_remote_adsb_receiver_is_persisted_and_bootstrapped(client):
+    value = json.dumps({"host": "10.10.42.10", "port": 30003, "enabled": True})
+    assert put(client, {"adsb.remoteReceiver": value}).status_code == 200
+    assert client.get(URL).json["prefs"]["adsb.remoteReceiver"] == value
+    html = client.get("/adsb/dashboard").get_data(as_text=True)
+    payload = re.search(r'id="intercept-account-prefs" type="application/json">(.*?)</script>', html, re.S)[1]
+    assert json.loads(payload)["prefs"]["adsb.remoteReceiver"] == value
+    assert 'id="saveRemoteSbs"' in html

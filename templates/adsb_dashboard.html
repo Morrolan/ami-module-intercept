@@ -30,6 +30,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/help-modal.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard-shell.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/adsb_dashboard.css') }}">
+    <script defer src="{{ url_for('static', filename='js/components/adsb-remote.js') }}"></script>
     <!-- Deferred scripts -->
     <script>
         window.INTERCEPT_SHARED_OBSERVER_LOCATION = {{ shared_observer_location | tojson }};
@@ -379,9 +380,11 @@
                 <div class="control-group-items">
                     <label data-explain-text="Use remote dump1090"><input type="checkbox" id="useRemoteDump1090" onchange="toggleRemoteDump1090()"> Remote</label>
                     <span class="remote-dump1090-controls" style="display: none;">
-                        <input type="text" id="remoteSbsHost" placeholder="Host" style="width: 70px;">
-                        <input type="number" id="remoteSbsPort" value="30003" min="1" max="65535" style="width: 70px;">
+                        <input type="text" id="remoteSbsHost" aria-label="Remote ADS-B host" placeholder="Host" style="width: 70px;">
+                        <input type="number" id="remoteSbsPort" aria-label="Remote ADS-B port" value="30003" min="1" max="65535" style="width: 70px;">
                     </span>
+                    <button type="button" class="strip-btn" id="saveRemoteSbs" aria-label="Save remote ADS-B receiver">Save</button>
+                    <span id="remoteSbsSaveStatus" role="status" aria-live="polite"></span>
                     <select id="adsbDeviceSelect" data-explain-text="SDR device for ADS-B (1090 MHz)">
                         <option value="0">SDR 0</option>
                     </select>
