@@ -9,7 +9,7 @@ import pytest
 
 from .test_pages_load import INIT_SCRIPT
 
-VIEWPORTS = [(1440, 900), (1366, 768), (390, 844), (720, 450)]
+VIEWPORTS = [(3008, 1692), (1440, 900), (1366, 768), (390, 844), (720, 450)]
 
 
 @pytest.mark.parametrize("width,height", VIEWPORTS)
@@ -68,5 +68,75 @@ def test_selected_aircraft_pushes_list_down(browser, base_url, width, height, th
         # Removing/changing the selection also releases its height.
         page.evaluate("showAircraftDetails('not-present')")
         assert page.locator("#selectedInfo").inner_text().strip().endswith("Select an aircraft")
+    finally:
+        context.close()
+
+
+@pytest.mark.parametrize("embedded", [False, True])
+def test_aircraft_uses_full_desktop_height(browser, base_url, embedded, monkeypatch):
+    """A tall desktop must not leave an empty half-screen below the map."""
+    context = browser.new_context(viewport={"width": 3008, "height": 1692})
+    context.add_init_script(INIT_SCRIPT % "dark")
+    context.route("**/*", lambda r: r.continue_() if r.request.url.startswith(base_url) else r.abort())
+    monkeypatch.setenv("AMI_URL", base_url)
+    page = context.new_page()
+    try:
+        if embedded:
+            context.route(base_url + "/layout-parent", lambda r: r.fulfill(content_type="text/html", body=
+                '<style>html,body{height:100%;margin:0}body{display:flex;flex-direction:column}'
+                'header{height:96px;flex:none;background:#071a18;color:#75ead5}iframe{flex:1;border:0;width:100%;min-height:0}</style>'
+                '<header>AMI — embedded aircraft layout check</header><iframe src="/adsb/dashboard?ami=1"></iframe>'))
+            page.goto(base_url + "/layout-parent", wait_until="domcontentloaded")
+            view = page.frames[1]
+            view.wait_for_load_state("domcontentloaded")
+            view.wait_for_function("typeof showAircraftDetails === 'function'")
+            assert view.evaluate("document.documentElement.classList.contains('ami-embedded')")
+        else:
+            page.goto(base_url + "/adsb/dashboard", wait_until="domcontentloaded")
+            page.wait_for_function("typeof showAircraftDetails === 'function'")
+            view = page
+        for width, height in [(3008, 1692), (1920, 1080), (1366, 768)]:
+            page.set_viewport_size({"width": width, "height": height})
+            geometry = view.evaluate("""() => {
+              const map=document.querySelector('.main-display').getBoundingClientRect();
+              const controls=document.querySelector('.controls-bar').getBoundingClientRect();
+              return {mapTop:map.top,mapBottom:map.bottom,controlsBottom:controls.bottom,
+                controlsHeight:controls.height,viewport:innerHeight};
+            }""")
+            assert geometry['mapBottom'] >= geometry['viewport'] - geometry['controlsHeight'] - 2, geometry
+            assert geometry['controlsBottom'] >= geometry['viewport'] - 2, geometry
+            if height >= 1080:
+                assert abs(geometry['controlsBottom'] - geometry['viewport']) <= 2, geometry
+            shots = os.environ.get("INTERCEPT_LAYOUT_SCREENSHOTS")
+            if shots and width == 3008:
+                folder = Path(shots)
+                folder.mkdir(parents=True, exist_ok=True)
+                page.screenshot(path=str(folder / f"adsb-full-height-{'embedded' if embedded else 'standalone'}.png"))
+    finally:
+        context.close()
+
+
+def test_aircraft_map_tracks_content_resizing(browser, base_url):
+    context = browser.new_context(viewport={"width": 1600, "height": 1000})
+    context.add_init_script(INIT_SCRIPT % "dark")
+    context.route("**/*", lambda r: r.continue_() if r.request.url.startswith(base_url) else r.abort())
+    page = context.new_page()
+    try:
+        page.goto(base_url + "/adsb/dashboard", wait_until="domcontentloaded")
+        page.wait_for_function("window.radarMap && typeof window.radarMap.getSize === 'function'")
+        # Outlive the dashboard's existing 200/500ms one-shot init corrections;
+        # they must not mask the missing handling of subsequent content changes.
+        page.wait_for_timeout(650)
+        before = page.locator('#radarMap').evaluate('el=>el.clientHeight')
+        page.locator('#selectedInfo').evaluate("""el=>{
+          const detail=document.createElement('div');detail.id='largeAircraftDetail';
+          detail.style.height='2000px';detail.textContent='Additional aircraft details';el.append(detail);
+        }""")
+        page.wait_for_function("old=>document.getElementById('radarMap').clientHeight>old+100", arg=before)
+        matches = "radarMap.getSize().y === document.getElementById('radarMap').clientHeight"
+        page.wait_for_function(matches, timeout=2000)
+        page.locator('#largeAircraftDetail').evaluate('el=>el.remove()')
+        page.wait_for_function("old=>document.getElementById('radarMap').clientHeight<=old", arg=before)
+        page.wait_for_function(matches, timeout=2000)
     finally:
         context.close()
