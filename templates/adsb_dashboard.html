@@ -2465,8 +2465,13 @@ ACARS: ${r.statistics.acarsMessages} messages`;
                         startSessionTimer();
                         isTracking = true;
                         isTrackingStarting = false;
-                        adsbActiveDevice = adsbDevice;  // Track which device is being used
+                        // already_running can describe a receiver started by another tab.
+                        // Use that actual session; a remote SBS feed owns no local SDR.
+                        const activeSession = data.session;
+                        const activeSdrType = activeSession?.sdr_type || (remoteConfig ? 'remote' : adsbSdrType);
+                        adsbActiveDevice = activeSdrType === 'remote' ? null : (activeSession?.device_index ?? adsbDevice);
                         adsbTrackingSource = useAgent ? adsbCurrentAgent : 'local';  // Track which source started tracking
+                        if (!useAgent && activeSession?.sdr_type) window.AdsbRemoteReceiver?.restoreSession(activeSession);
                         updateSourceIndicator();
                         btn.textContent = 'STOP';
                         btn.classList.add('active');
@@ -2605,8 +2610,8 @@ ACARS: ${r.statistics.acarsMessages} messages`;
                     const sessionDevice = session.device_index;
                     const sessionSdrType = session.sdr_type || 'rtlsdr';
                     window.AdsbRemoteReceiver?.restoreSession(session);
+                    adsbActiveDevice = sessionSdrType === 'remote' ? null : (sessionDevice ?? null);
                     if (sessionSdrType !== 'remote' && sessionDevice !== null && sessionDevice !== undefined) {
-                        adsbActiveDevice = sessionDevice;
                         const adsbSelect = document.getElementById('adsbDeviceSelect');
                         if (adsbSelect) {
                             // Use composite value to select the correct device+type
