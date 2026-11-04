@@ -162,6 +162,8 @@ def test_saved_remote_is_selectable_and_start_uses_it(browser, prefs_url, viewpo
         assert page.get_by_label('Remote', exact=True).is_checked()
         page.evaluate("() => { adsbCurrentAgent = '7'; updateSourceIndicator(); }")
         assert page.locator('#adsbDeviceSelect option[value="remote-sbs"]').count() == 0
+        assert not page.locator('#adsbGainInput').is_disabled()
+        assert not page.locator('#adsbBiasT').is_disabled()
         page.evaluate("() => { adsbCurrentAgent = 'local'; updateSourceIndicator(); }")
         assert page.locator('#adsbDeviceSelect').input_value() == 'remote-sbs'
         if start_mode == 'auto':
@@ -173,6 +175,11 @@ def test_saved_remote_is_selectable_and_start_uses_it(browser, prefs_url, viewpo
         assert '10.10.42.6' in page.locator('#stripSource').inner_text()
         page.reload(wait_until='domcontentloaded')
         page.wait_for_function("document.getElementById('adsbDeviceSelect').value === 'remote-sbs'", timeout=5000)
+        assert '10.10.42.6' in page.locator('#stripSource').inner_text()
+        assert page.locator('#adsbDeviceSelect').is_disabled()
+        page.evaluate("() => { const select = document.getElementById('adsbDeviceSelect'); select.value = 'rtlsdr:0'; select.dispatchEvent(new Event('change')); }")
+        assert page.get_by_label('Remote', exact=True).is_checked()
+        assert page.locator('#adsbDeviceSelect').input_value() == 'remote-sbs'
         assert '10.10.42.6' in page.locator('#stripSource').inner_text()
     finally:
         context.close()

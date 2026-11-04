@@ -30,6 +30,10 @@
             if (!select) return;
             let option = Array.from(select.options).find(o => o.value === remoteValue);
             const value = formValue();
+            for (const id of ['adsbGainInput', 'adsbBiasT']) {
+                const input = document.getElementById(id);
+                if (input) input.disabled = locked || (localMode() && enabled.checked);
+            }
             if (!localMode() || !valid(value)) {
                 option?.remove();
                 return;
@@ -44,10 +48,6 @@
             if (enabled.checked) select.value = remoteValue;
             else if (select.value === remoteValue) {
                 select.value = Array.from(select.options).find(o => o.value !== remoteValue)?.value || '';
-            }
-            for (const id of ['adsbGainInput', 'adsbBiasT']) {
-                const input = document.getElementById(id);
-                if (input) input.disabled = locked || enabled.checked;
             }
         }
         window.AdsbRemoteReceiver = {
@@ -76,12 +76,17 @@
             },
             setTracking(value) {
                 locked = value;
-                for (const input of [host, port, enabled]) input.disabled = locked;
+                for (const input of [host, port, enabled, select, document.getElementById('agentSelect')]) {
+                    if (input) input.disabled = locked;
+                }
                 button.disabled = locked || saving;
             }
         };
         select?.addEventListener('change', () => {
-            if (!localMode()) return;
+            if (!localMode() || locked) {
+                refresh();
+                return;
+            }
             enabled.checked = select.value === remoteValue;
             window.toggleRemoteDump1090();
         });
