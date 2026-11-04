@@ -132,8 +132,9 @@ def test_aircraft_map_tracks_content_resizing(browser, base_url):
           const detail=document.createElement('div');detail.id='largeAircraftDetail';
           detail.style.height='2000px';detail.textContent='Additional aircraft details';el.append(detail);
         }""")
-        page.wait_for_function("old=>document.getElementById('radarMap').clientHeight>old+100", arg=before)
-        matches = "radarMap.getSize().y === document.getElementById('radarMap').clientHeight"
+        assert page.locator('#radarMap').evaluate('el=>el.clientHeight') <= before + 1
+        assert page.locator('.sidebar').evaluate('el=>el.getBoundingClientRect().height') > 2000
+        matches = "radarMap.getSize().y === document.getElementById('radarMap').clientHeight && radarMap.getSize().x === document.getElementById('radarMap').clientWidth"
         page.wait_for_function(matches, timeout=2000)
         page.locator('#largeAircraftDetail').evaluate('el=>el.remove()')
         page.wait_for_function("old=>document.getElementById('radarMap').clientHeight<=old", arg=before)

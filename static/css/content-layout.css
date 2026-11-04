@@ -38,8 +38,10 @@ html body[data-mode="adsb"] .main-display {
         grid-template-rows: 1fr auto;
     }
     html body[data-mode="adsb"] .main-display {
-        height: auto;
-        align-self: stretch;
+        /* Measured page chrome leaves the map the remaining viewport height;
+           a long aircraft list must not stretch its drawing area off-screen. */
+        height: max(320px, calc(100dvh - var(--adsb-map-chrome, 220px)));
+        align-self: start;
     }
 }
 
