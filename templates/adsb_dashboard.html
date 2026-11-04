@@ -2249,6 +2249,21 @@ ACARS: ${r.statistics.acarsMessages} messages`;
             if (!radarMap) return;
             window.radarMap = radarMap;
 
+            const dashboard = container.closest('.dashboard');
+            const controls = dashboard.querySelector('.controls-bar');
+            const fitMapViewport = () => {
+                const chrome = dashboard.getBoundingClientRect().top + window.scrollY + controls.getBoundingClientRect().height;
+                dashboard.style.setProperty('--adsb-map-chrome', `${chrome}px`);
+            };
+            const chromeResizeObserver = new ResizeObserver(fitMapViewport);
+            chromeResizeObserver.observe(controls);
+            // Navigation, statistics and embedded chrome can wrap independently.
+            for (const sibling of dashboard.parentElement.children) {
+                if (sibling !== dashboard) chromeResizeObserver.observe(sibling);
+            }
+            fitMapViewport();
+            radarMap.once('unload', () => chromeResizeObserver.disconnect());
+
             // Aircraft details and message panels can resize the grid without
             // resizing the window. Keep Leaflet's tile area and projection current.
             const mapResizeObserver = new ResizeObserver(() => radarMap.invalidateSize({ pan: false }));
