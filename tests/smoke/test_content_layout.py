@@ -101,7 +101,10 @@ def assert_information_grows(page, selector):
     }""",
         selector,
     )
-    action = page.locator("#layoutFinalAction")
+    # Match the exact fixture node without Playwright walking every shadow root
+    # in the populated System dashboard before starting the actionability check.
+    action = page.evaluate_handle("document.getElementById('layoutFinalAction')").as_element()
+    assert action is not None
     hidden = action.evaluate("""el=>{
       const hidden=[];for(let e=el.parentElement;e&&e!==document.body;e=e.parentElement){
         const s=getComputedStyle(e);if(['hidden','auto','scroll','clip'].includes(s.overflowY)&&e.scrollHeight>e.clientHeight+2)hidden.push(e.id||e.className||e.tagName);
