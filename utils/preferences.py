@@ -16,6 +16,7 @@ SYNCED_KEYS = frozenset({
     'mutedAddresses', 'tscmIgnoreList', 'biasTEnabled', 'adsbBiasTEnabled',
     'reconEnabled', 'intercept.morse.settings.v3', 'satellite.dashboard.receiver',
     'adsb.limitRange', 'adsb.retentionMs', 'adsbHistoryWindowMinutes', 'adsb.remoteReceiver',
+    'airband.frequencyPresets',
 })
 # LAYOUT_KEYS/LAYOUT_PREFIXES in settings-manager.js are all per device.
 PER_DEVICE_KEYS = (

@@ -62,6 +62,7 @@ def test_account_sync_and_offline(browser, prefs_url):
                                   and 'interceptTimezone' in (r.request.post_data or '')) as saved:
             page.evaluate("""() => {
                 localStorage.setItem('interceptTimezone', 'Europe/London');
+                localStorage.setItem('airband.frequencyPresets', '[{"id":"tower","name":"Tower","frequency":119.805}]');
                 localStorage.setItem('mainSidebarCollapsed', 'true');
                 localStorage.setItem('audioMuted', 'true');
                 sessionStorage.setItem('observerLon', 'session-only');
@@ -69,6 +70,7 @@ def test_account_sync_and_offline(browser, prefs_url):
         assert saved.value.ok
         fresh = sign_in(second, prefs_url)
         assert fresh.evaluate("localStorage.getItem('interceptTimezone')") == 'Europe/London'
+        assert 'Tower' in fresh.evaluate("localStorage.getItem('airband.frequencyPresets')")
         assert fresh.evaluate("localStorage.getItem('mainSidebarCollapsed')") is None
         assert fresh.evaluate("localStorage.getItem('audioMuted')") is None
         assert fresh.evaluate("localStorage.getItem('observerLon')") is None
