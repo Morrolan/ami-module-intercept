@@ -3923,6 +3923,8 @@ ACARS: ${r.statistics.acarsMessages} messages`;
         }
 
         (function initAirbandChip() {
+            const panel = document.getElementById('airbandPanel');
+            if (panel) new ResizeObserver(positionAirbandPanel).observe(panel);
             const status = document.getElementById('airbandStatus');
             const btn = document.getElementById('airbandBtn');
             const sel = document.getElementById('airbandFreqSelect');
