@@ -15,7 +15,7 @@ import threading
 import time
 from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
-from functools import lru_cache
+from functools import lru_cache, wraps
 from pathlib import Path
 from typing import Any
 
@@ -93,6 +93,19 @@ adsb_lines_received = 0
 adsb_active_device = None  # Track which device index is being used
 adsb_active_sdr_type: str | None = None
 adsb_bias_t_active = False  # Track if bias-t was enabled at start (for cleanup on stop)
+_runtime_session: dict[str, Any] | None = None
+_adsb_control_lock = threading.Lock()
+
+
+def serialize_adsb_control(func):
+    """Finish a receiver transition, including session writes, before the next."""
+    @wraps(func)
+    def guarded(*args, **kwargs):
+        with _adsb_control_lock:
+            return func(*args, **kwargs)
+    return guarded
+
+
 _sbs_error_logged = False  # Suppress repeated connection error logs
 
 # Track ICAOs already looked up in aircraft database (avoid repeated lookups).
@@ -506,6 +519,8 @@ def _adsb_stream_queue_depth() -> int:
 
 
 def _get_active_session() -> dict[str, Any] | None:
+    if _runtime_session is not None:
+        return dict(_runtime_session)
     if not ADSB_HISTORY_ENABLED or not PSYCOPG2_AVAILABLE:
         return None
     _ensure_history_schema()
@@ -535,10 +550,19 @@ def _record_session_start(
     start_source: str | None,
     started_by: str | None,
 ) -> dict[str, Any] | None:
+    global _runtime_session
+    runtime_session = {
+        "id": None, "started_at": datetime.now(timezone.utc),
+        "device_index": device_index, "sdr_type": sdr_type,
+        "remote_host": remote_host, "remote_port": remote_port,
+        "start_source": start_source, "started_by": started_by,
+    }
+    with app_module.adsb_lock:
+        _runtime_session = runtime_session
     if not ADSB_HISTORY_ENABLED or not PSYCOPG2_AVAILABLE:
-        return None
-    _ensure_history_schema()
+        return dict(runtime_session)
     try:
+        _ensure_history_schema()
         with _get_history_connection() as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(
                 """
@@ -562,15 +586,21 @@ def _record_session_start(
                     started_by,
                 ),
             )
-            return cur.fetchone()
+            row = cur.fetchone()
+            if row:
+                with app_module.adsb_lock:
+                    if _runtime_session is runtime_session:
+                        _runtime_session = dict(row)
+                return dict(row)
+            return dict(runtime_session)
     except Exception as exc:
         logger.warning("ADS-B session start record failed: %s", exc)
-        return None
+        return dict(runtime_session)
 
 
-def _record_session_stop(*, stop_source: str | None, stopped_by: str | None) -> dict[str, Any] | None:
+def _record_session_stop(*, stop_source: str | None, stopped_by: str | None, previous=None) -> dict[str, Any] | None:
     if not ADSB_HISTORY_ENABLED or not PSYCOPG2_AVAILABLE:
-        return None
+        return previous
     _ensure_history_schema()
     try:
         with _get_history_connection() as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -1046,9 +1076,10 @@ def adsb_aircraft_export():
 
 
 @adsb_bp.route("/session")
+@serialize_adsb_control
 def adsb_session():
     """Get ADS-B session status and uptime."""
-    session = _get_active_session()
+    session = _get_active_session() if adsb_using_service else None
     uptime_seconds = None
     if session and session.get("started_at"):
         started_at = session["started_at"]
@@ -1065,7 +1096,31 @@ def adsb_session():
     )
 
 
+@adsb_bp.route("/teesside")
+def teesside_flights():
+    """Read the cached public airport board without paid API credentials."""
+    from utils.teesside_board import flight_board
+
+    response = jsonify(flight_board.get())
+    response.headers['Cache-Control'] = 'no-store'
+    return response
+
+
+@adsb_bp.route("/route/<callsign>")
+def aircraft_route(callsign):
+    """Look up selected airline callsigns without guessing from aircraft position."""
+    from utils.aircraft_routes import route_cache
+
+    try:
+        response = jsonify(route_cache.get(callsign.strip().upper()))
+        response.headers['Cache-Control'] = 'no-store'
+        return response
+    except ValueError:
+        return api_error('Invalid airline callsign', 400)
+
+
 @adsb_bp.route("/start", methods=["POST"])
+@serialize_adsb_control
 def start_adsb():
     """Start ADS-B tracking."""
     global adsb_using_service, adsb_active_device, adsb_active_sdr_type, adsb_bias_t_active
@@ -1343,9 +1398,10 @@ def start_adsb():
 
 
 @adsb_bp.route("/stop", methods=["POST"])
+@serialize_adsb_control
 def stop_adsb():
     """Stop ADS-B tracking."""
-    global adsb_using_service, adsb_active_device, adsb_active_sdr_type, adsb_bias_t_active
+    global adsb_using_service, adsb_active_device, adsb_active_sdr_type, adsb_bias_t_active, _runtime_session
     data = request.get_json(silent=True) or {}
     stop_source = data.get("source")
     stopped_by = request.remote_addr
@@ -1375,9 +1431,11 @@ def stop_adsb():
         adsb_active_device = None
         adsb_active_sdr_type = None
 
+        previous, _runtime_session = _runtime_session, None
+
     app_module.adsb_aircraft.clear()
     _looked_up_icaos.clear()
-    session = _record_session_stop(stop_source=stop_source, stopped_by=stopped_by)
+    session = _record_session_stop(stop_source=stop_source, stopped_by=stopped_by, previous=previous)
     return jsonify({"status": "stopped", "session": session})
 
 

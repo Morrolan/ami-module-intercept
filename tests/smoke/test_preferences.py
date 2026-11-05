@@ -185,3 +185,34 @@ def test_saved_remote_is_selectable_and_start_uses_it(browser, prefs_url, viewpo
         assert '10.10.42.6' in page.locator('#stripSource').inner_text()
     finally:
         context.close()
+
+
+def test_real_history_disabled_session_restores_remote_over_saved_local(browser, prefs_url, monkeypatch):
+    import routes.adsb as adsb
+
+    monkeypatch.setattr(adsb, 'ADSB_HISTORY_ENABLED', False)
+    monkeypatch.setattr(adsb, 'adsb_using_service', False)
+    monkeypatch.setattr(adsb, '_runtime_session', None)
+    monkeypatch.setattr(adsb, 'parse_sbs_stream', lambda *_: None)
+    context = browser.new_context()
+    try:
+        local_only(context, prefs_url)
+        context.route('**/devices', lambda r: r.fulfill(json=[{'index': 0, 'sdr_type': 'rtlsdr', 'name': 'Local RTL'}]))
+        context.route('**/adsb/stream', lambda r: r.fulfill(content_type='text/event-stream', body=''))
+        page = sign_in(context, prefs_url)
+        page.evaluate("localStorage.setItem('adsb.remoteReceiver', JSON.stringify({host:'old-host',port:30003,enabled:false}))")
+        page.evaluate('() => InterceptPrefs.flush()')
+        # Use the real start/status routes: older tests supplied invented complete metadata.
+        started = context.request.post(prefs_url + '/adsb/start', data={'remote_sbs_host': '10.10.42.6', 'remote_sbs_port': 30003})
+        assert started.ok
+        page.goto(prefs_url + '/adsb/dashboard?ami=1', wait_until='domcontentloaded')
+        page.wait_for_function("document.querySelector('#adsbDeviceSelect').value === 'remote-sbs'")
+        assert '10.10.42.6:30003' in page.locator('#stripSource').inner_text()
+        assert page.locator('#adsbDeviceSelect').is_disabled()
+        page.reload(wait_until='domcontentloaded')
+        page.wait_for_function("document.querySelector('#adsbDeviceSelect').value === 'remote-sbs'")
+        page.evaluate('() => initDeviceSelectors(true)')
+        assert page.locator('#adsbDeviceSelect').input_value() == 'remote-sbs'
+    finally:
+        context.request.post(prefs_url + '/adsb/stop', data={})
+        context.close()

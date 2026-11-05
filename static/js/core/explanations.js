@@ -2,6 +2,41 @@
 (function () {
   'use strict';
   const guide = /* catalogue */ {
+  "title-Teesside airport board": {
+    "term": "Teesside airport board",
+    "meaning": "Shows the airport's published arrivals, departures and estimates, plus separately received Draken aircraft.",
+    "matters": "Use the next-movement countdowns to decide when to listen to local air traffic control.",
+    "notMeaning": "The board is checked at most every five minutes and does not provide ATC clearances or a Draken flight timetable.",
+    "category": "Guide"
+  },
+  "title-Listen to Teesside Tower": {
+    "term": "Listen to Tower",
+    "meaning": "Tunes your selected local airband receiver to the Tower carrier frequency, 119.800 MHz AM.",
+    "matters": "The published 8.33 kHz channel name is 119.805; an SDR tunes the carrier frequency instead.",
+    "notMeaning": "This is receive-only and requires a free receiver; opening the board does not start listening.",
+    "category": "Guide"
+  },
+  "title-Listen to Teesside Approach": {
+    "term": "Listen to Approach",
+    "meaning": "Tunes your selected local airband receiver to the Approach carrier frequency, 118.850 MHz AM.",
+    "matters": "The published 8.33 kHz channel name is 118.855; an SDR tunes the carrier frequency instead.",
+    "notMeaning": "This is receive-only and reception depends on your receiver and antenna.",
+    "category": "Guide"
+  },
+  "title-Aircraft route origin": {
+    "term": "Origin",
+    "meaning": "Departure airport from a public callsign-route lookup, when available.",
+    "matters": "Provides context for the selected aircraft without changing its received position.",
+    "notMeaning": "ADS-B does not transmit this field; a callsign route can be unavailable or differ from the current flight.",
+    "category": "Guide"
+  },
+  "title-Aircraft route destination": {
+    "term": "Destination",
+    "meaning": "Arrival airport from a public callsign-route lookup, when available.",
+    "matters": "Helps identify where the selected flight may be heading.",
+    "notMeaning": "This is not a verified flight plan, arrival clearance or a route inferred from the aircraft's heading.",
+    "category": "Guide"
+  },
   "title-Aircraft colour key": {
     "term": "Aircraft key",
     "meaning": "Explains the colours, status rings and aircraft shapes used on the map.",
