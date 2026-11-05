@@ -197,6 +197,8 @@ def acars_status() -> Response:
     return jsonify(
         {
             "running": running,
+            "active_device": acars_active_device if running else None,
+            "sdr_type": acars_active_sdr_type if running else None,
             "message_count": acars_message_count,
             "last_message_time": acars_last_message_time,
             "queue_size": app_module.acars_queue.qsize(),

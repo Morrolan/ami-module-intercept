@@ -189,6 +189,8 @@ def vdl2_status() -> Response:
     return jsonify(
         {
             "running": running,
+            "active_device": vdl2_active_device if running else None,
+            "sdr_type": vdl2_active_sdr_type if running else None,
             "message_count": vdl2_message_count,
             "last_message_time": vdl2_last_message_time,
             "queue_size": app_module.vdl2_queue.qsize(),
