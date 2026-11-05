@@ -20,6 +20,7 @@ def test_add_rename_reload_and_remove_named_frequency(page):
     assert option.inner_text() == 'Local approach · 119.805 MHz'
     assert page.evaluate('getAirbandFrequency()') == 119.805
     assert 'Local approach' in page.locator('#airbandChipFreq').inner_text()
+    saved = page.input_value('#airbandFreqSelect')
     for width, height in ((1600, 1000), (390, 844), (720, 450)):
         page.set_viewport_size({'width': width, 'height': height})
         page.evaluate('positionAirbandPanel()')
@@ -28,8 +29,10 @@ def test_add_rename_reload_and_remove_named_frequency(page):
         assert box['x'] + box['width'] <= width and box['y'] + box['height'] <= height, box
         if os.environ.get('INTERCEPT_AIRBAND_SCREENSHOTS'):
             page.screenshot(path=f'/private/tmp/airband-presets-{width}.png', full_page=True)
+        page.select_option('#airbandFreqSelect', 'custom')
+        page.wait_for_function("document.querySelector('#airbandPanel').getBoundingClientRect().bottom <= innerHeight", timeout=3000)
+        page.select_option('#airbandFreqSelect', saved)
     page.set_viewport_size({'width': 1600, 'height': 1000})
-    saved = page.input_value('#airbandFreqSelect')
     page.reload(wait_until='domcontentloaded')
     page.click('#airbandChip')
     page.select_option('#airbandFreqSelect', saved)
