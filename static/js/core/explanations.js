@@ -2,6 +2,13 @@
 (function () {
   'use strict';
   const guide = /* catalogue */ {
+  "title-Choose the receiver by its hardware and host; this selection is independent of ADS-B.": {
+    "term": "Datalink receiver",
+    "meaning": "Selects the physical SDR and the host that will decode ACARS or VDL2 messages.",
+    "matters": "Choose an available VHF receiver independently of the receiver used for ADS-B tracking.",
+    "notMeaning": "An ADS-B data feed does not provide VHF radio reception, and a busy SDR cannot tune to both bands at once.",
+    "category": "Guide"
+  },
   "mode-pager": {
     "term": "Pager",
     "meaning": "Decodes POCSAG and FLEX pager transmissions with a radio receiver.",
