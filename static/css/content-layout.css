@@ -8,6 +8,9 @@ html, html body {
 }
 html body { min-height: 100vh; }
 
+/* The document owns aircraft page scrolling, including overflowing grid columns. */
+html body[data-mode="adsb"] { overflow: visible !important; }
+
 /* Aircraft details grow; the tracked list follows in normal document order. */
 html body[data-mode="adsb"] .dashboard {
     height: auto !important;
@@ -30,12 +33,17 @@ html body[data-mode="adsb"] .main-display {
     align-self: start;
 }
 
-/* Desktop aircraft tracking fills the available viewport. The grid can still
-   grow beyond it when selected-target details or the tracked list need room. */
+/* Keep the map and its controls independent of either information column.
+   Sidebars may overflow this bounded row into the page scroll area. */
 @media (min-width: 1024px) {
     html body[data-mode="adsb"] .dashboard {
         flex: 1;
-        grid-template-rows: 1fr auto;
+        grid-template-rows: max(320px, calc(100dvh - var(--adsb-map-chrome, 220px))) auto;
+    }
+    html body[data-mode="adsb"] .sidebar { align-self: start; }
+    html body[data-mode="adsb"] .controls-bar {
+        grid-column: 2;
+        align-self: start;
     }
     html body[data-mode="adsb"] .main-display {
         /* Measured page chrome leaves the map the remaining viewport height;
@@ -43,6 +51,11 @@ html body[data-mode="adsb"] .main-display {
         height: max(320px, calc(100dvh - var(--adsb-map-chrome, 220px)));
         align-self: start;
     }
+}
+
+@media (max-width: 1023px) {
+    html body[data-mode="adsb"] .controls-bar { order: 1; }
+    html body[data-mode="adsb"] .sidebar { order: 2; }
 }
 
 /* The shell grows with information in either column. Mobile navigation remains
