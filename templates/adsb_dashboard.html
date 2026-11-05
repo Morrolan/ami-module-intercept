@@ -34,6 +34,8 @@
     <script defer src="{{ url_for('static', filename='js/components/datalink-receivers.js') }}"></script>
     <script defer src="{{ url_for('static', filename='js/components/airband-presets.js') }}"></script>
     <script defer src="{{ url_for('static', filename='js/components/aircraft-key.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/components/teesside-board.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/components/aircraft-route.js') }}"></script>
     <!-- Deferred scripts -->
     <script>
         window.INTERCEPT_SHARED_OBSERVER_LOCATION = {{ shared_observer_location | tojson }};
@@ -149,6 +151,7 @@
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="5" cy="5" r="2"/><circle cx="5" cy="12" r="2"/><circle cx="5" cy="19" r="2"/><path d="M11 5h10M11 12h10M11 19h10"/></svg>
                 Aircraft key
             </button>
+            <button type="button" class="strip-btn" id="teessideBoardBtn" aria-label="Teesside airport board" aria-haspopup="dialog" aria-controls="teessideDialog" data-explain-text="Teesside airport board">Teesside</button>
             <button type="button" class="strip-btn primary" onclick="generateReport()" data-explain-text="Generate Session Report">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
                 Report
@@ -3460,6 +3463,15 @@ ACARS: ${r.statistics.acarsMessages} messages`;
                 ${badge}
                 <div class="telemetry-grid">
                     <div class="telemetry-item">
+                        <div class="telemetry-label" data-explain-text="Aircraft route origin">Origin</div>
+                        <div class="telemetry-value aircraft-route-value" id="selectedOrigin">Unknown</div>
+                    </div>
+                    <div class="telemetry-item">
+                        <div class="telemetry-label" data-explain-text="Aircraft route destination">Destination</div>
+                        <div class="telemetry-value aircraft-route-value" id="selectedDestination">Unknown</div>
+                    </div>
+                    <div class="aircraft-route-source"><span id="selectedRouteSource">Route unavailable.</span> <a href="https://www.adsbdb.com/" target="_blank" rel="noopener" aria-label="Route data source">Source</a></div>
+                    <div class="telemetry-item">
                         <div class="telemetry-label">ICAO</div>
                         <div class="telemetry-value">${CopyId.html(ac.icao)}${DeviceNotes.html(ac.icao, 'adsb')}</div>
                     </div>
@@ -3510,6 +3522,7 @@ ACARS: ${r.statistics.acarsMessages} messages`;
             }
 
             // Fetch ACARS messages for this aircraft
+            window.AircraftRoute?.show(icao, ac.callsign, registration);
             fetchAircraftMessages(icao);
         }
 
@@ -4166,9 +4179,10 @@ ACARS: ${r.statistics.acarsMessages} messages`;
             audioPlayer.pause();
             audioPlayer.src = '';
 
-            fetch('/receiver/audio/stop', { method: 'POST' })
-                .then(r => r.json())
-                .then(() => {
+            return fetch('/receiver/audio/stop', { method: 'POST' })
+                .then(r => { if (!r.ok) throw new Error('Audio stop failed'); return r.json(); })
+                .then(data => {
+                    if (data.status !== 'stopped') throw new Error('Audio receiver did not stop');
                     isAirbandPlaying = false;
                     document.getElementById('airbandBtn').innerHTML = '<span class="airband-icon">▶</span> LISTEN';
                     document.getElementById('airbandBtn').classList.remove('active');
@@ -5300,6 +5314,7 @@ ACARS: ${r.statistics.acarsMessages} messages`;
 
     <!-- Squawk Code Reference Modal -->
     {% include 'partials/aircraft-key.html' %}
+    {% include 'partials/teesside-board.html' %}
     <div id="squawkModal" class="squawk-modal">
         <div class="squawk-modal-content">
             <div class="squawk-modal-header">

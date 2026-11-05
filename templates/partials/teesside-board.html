@@ -1,0 +1,30 @@
+<dialog id="teessideDialog" class="aircraft-key teesside-board" aria-labelledby="teessideTitle">
+    <div class="aircraft-key-header">
+        <h2 id="teessideTitle">Teesside · MME / EGNV</h2>
+        <button type="button" class="strip-btn" id="teessideClose" aria-label="Close Teesside board" autofocus>Close ×</button>
+    </div>
+    <p>Plan when to listen. Countdowns use published estimates when available, otherwise scheduled times.</p>
+    <div class="teesside-actions">
+        <button type="button" class="strip-btn" data-radio="tower" data-explain-text="Listen to Teesside Tower">Listen to Tower · 119.800 MHz</button>
+        <button type="button" class="strip-btn" data-radio="approach" data-explain-text="Listen to Teesside Approach">Listen to Approach · 118.850 MHz</button>
+    </div>
+    <p id="teessideRadioStatus" role="status"></p>
+    <section aria-labelledby="teessideNextTitle">
+        <h3 id="teessideNextTitle">Next airport movements</h3>
+        <ul id="teessideNext"></ul>
+    </section>
+    <div class="teesside-actions" role="group" aria-label="Airport information">
+        <button type="button" class="strip-btn" data-board="arrivals" aria-pressed="true">Arrivals</button>
+        <button type="button" class="strip-btn" data-board="departures" aria-pressed="false">Departures</button>
+        <button type="button" class="strip-btn" data-board="draken" aria-pressed="false">Draken — received aircraft</button>
+    </div>
+    <div id="teessideAirportControls" class="teesside-actions">
+        <label>Flight date <select id="teessideDate" aria-label="Flight date"></select></label>
+        <button type="button" class="strip-btn" id="teessideRefresh" aria-label="Refresh airport board">Refresh</button>
+    </div>
+    <p id="teessideFreshness" role="status" aria-live="polite">Checking airport board…</p>
+    <p id="teessideDrakenNote" hidden>Aircraft heard by your selected ADS-B receiver, matched against known Draken registrations. This is not a flight timetable or a record of confirmed Teesside landings. Coverage depends on reception and aircraft identification.</p>
+    <ul id="teessideFlights"></ul>
+    <p>Times local to Teesside (Europe/London). Airport source checks are cached for up to five minutes.</p>
+    <p><a href="https://www.teessideinternational.com/arrivals-departures/" target="_blank" rel="noopener">Official airport board</a> · <a href="https://www.flightradar24.com/data/airlines/fra/fleet" target="_blank" rel="noopener">Draken fleet reference</a></p>
+</dialog>
