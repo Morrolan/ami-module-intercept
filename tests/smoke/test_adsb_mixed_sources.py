@@ -37,6 +37,8 @@ RESPONSES = {
     ("POST", "/acars/start"): {"status": "started"},
     ("POST", "/acars/stop"): {"status": "stopped"},
     ("POST", "/vdl2/start"): {"status": "started"},
+    ("POST", "/controller/agents/7/vdl2/start"): {"status": "success", "result": {"status": "started"}},
+    ("POST", "/controller/agents/7/vdl2/stop"): {"status": "success", "result": {"status": "stopped"}},
     ("POST", "/vdl2/stop"): {"status": "stopped"},
 }
 
@@ -52,6 +54,7 @@ def page(browser, base_url):
     page = context.new_page()
     page.calls = []
     page.errors = []
+    page.posts = []
 
     def handle(route):
         request = route.request
@@ -62,19 +65,21 @@ def page(browser, base_url):
         if body is None:
             return route.continue_()
         page.calls.append(f"{request.method} {path}")
+        if request.method == 'POST':
+            page.posts.append((path, json.loads(request.post_data or '{}')))
         route.fulfill(status=200, content_type="application/json", body=json.dumps(body))
 
     context.route("**/*", handle)
     page.on("pageerror", lambda err: page.errors.append(str(err)))
     page.goto(base_url + "/adsb/dashboard", wait_until="domcontentloaded")
     page.wait_for_function("typeof agents !== 'undefined' && agents.length === 1")
+    page.wait_for_function("[...document.querySelector('#vdl2DeviceSelect').options].some(o=>o.value==='7|rtlsdr:0')")
     yield page
     context.close()
 
 
-def _choose(page, select_id, value):
-    page.focus(f"#{select_id}")  # the panel source list is filled on focus
-    page.select_option(f"#{select_id}", value)
+def _choose_receiver(page, panel, source, device='0'):
+    page.select_option(f"#{panel}DeviceSelect", f"{source}|rtlsdr:{device}")
 
 
 def test_acars_on_agent_while_adsb_tracks_locally(page):
@@ -82,14 +87,14 @@ def test_acars_on_agent_while_adsb_tracks_locally(page):
     page.wait_for_function("isTracking === true")
     assert page.is_disabled("#agentSelect")  # header locked to Local while ADS-B tracks
 
-    _choose(page, "acarsSourceSelect", "7")
-    page.wait_for_function("document.getElementById('acarsDeviceSelect').textContent.includes('Agent RTL')")
+    _choose_receiver(page, "acars", "7")
+    page.wait_for_function("document.getElementById('acarsDeviceSelect').selectedOptions[0].textContent.includes('Agent RTL')")
     page.click("#acarsToggleBtn")
     page.wait_for_function("isAcarsRunning === true")
 
     assert "POST /controller/agents/7/acars/start" in page.calls
     assert "POST /acars/start" not in page.calls
-    assert page.is_disabled("#acarsSourceSelect")
+    assert page.is_disabled("#acarsDeviceSelect")
     assert page.evaluate("isTracking && adsbTrackingSource === 'local'")
 
     page.click("#acarsToggleBtn")
@@ -136,8 +141,7 @@ def test_datalink_only_conflicts_with_actual_local_adsb_device(page, mode, remot
     page.wait_for_function('isTracking === true')
     if mode == 'vdl2':
         page.click('#vdl2CollapseBtn')
-    _choose(page, mode+'SourceSelect', 'local')
-    page.select_option('#'+mode+'DeviceSelect', 'rtlsdr:0')
+    _choose_receiver(page, mode, 'local')
     page.click('#'+mode+'ToggleBtn')
     if remote:
         page.wait_for_function('mode=>mode==="acars"?isAcarsRunning:isVdl2Running', arg=mode, timeout=2000)
@@ -179,8 +183,7 @@ def test_existing_session_ownership_overrides_requested_receiver(page, actual_re
     page.click('#startBtn')
     page.wait_for_function('isTracking === true')
     page.click('#vdl2CollapseBtn')
-    _choose(page, 'vdl2SourceSelect', 'local')
-    page.select_option('#vdl2DeviceSelect', 'rtlsdr:0')
+    _choose_receiver(page, 'vdl2', 'local')
     page.click('#vdl2ToggleBtn')
     if actual_remote:
         page.wait_for_function('isVdl2Running', timeout=2000)
