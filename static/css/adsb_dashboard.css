@@ -2494,6 +2494,32 @@ html[data-ui-tier="lean"] .radar-bg {
     color: var(--accent-cyan);
 }
 
+.aircraft-key {
+    margin: auto;
+    width: min(640px, calc(100vw - 32px));
+    max-height: calc(100dvh - 32px);
+    box-sizing: border-box;
+    overflow: auto;
+    padding: 20px;
+    border: 1px solid var(--border-color);
+    border-radius: 0;
+    background: var(--bg-panel);
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.5;
+}
+.aircraft-key::backdrop { background: rgba(0, 0, 0, 0.7); }
+.aircraft-key-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.aircraft-key h2 { margin: 0; font-size: 16px; color: var(--accent-cyan); }
+.aircraft-key h3 { margin: 20px 0 8px; font-size: 13px; }
+.aircraft-key p { color: var(--text-secondary); }
+.aircraft-key ul { list-style: none; margin: 0; padding: 0; }
+.aircraft-key li { display: flex; gap: 12px; align-items: center; min-height: 48px; }
+.aircraft-key-icon { position: relative; display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 44px; }
+.aircraft-key-icon :is(.tracking-ring, .tracking-ring-inner, .ti-emergency) { animation: none; }
+.aircraft-key-shapes { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 4px 12px; }
+
 /* Control bar: when the groups do not fit on one line, the bar wraps onto a
    second row. Before, it squeezed instead: the Airband group folded its
    controls into a column, and every group in the row stretched to that
