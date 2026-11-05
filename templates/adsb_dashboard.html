@@ -33,6 +33,7 @@
     <script defer src="{{ url_for('static', filename='js/components/adsb-remote.js') }}"></script>
     <script defer src="{{ url_for('static', filename='js/components/datalink-receivers.js') }}"></script>
     <script defer src="{{ url_for('static', filename='js/components/airband-presets.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/components/aircraft-key.js') }}"></script>
     <!-- Deferred scripts -->
     <script>
         window.INTERCEPT_SHARED_OBSERVER_LOCATION = {{ shared_observer_location | tojson }};
@@ -143,6 +144,10 @@
             <button type="button" class="strip-btn" onclick="openInstruments()" data-explain-text="Open a pop-out instrument panel for the selected aircraft" id="instrumentsBtn" disabled>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 12l4-3"/><circle cx="12" cy="12" r="1.5"/></svg>
                 Instruments
+            </button>
+            <button type="button" class="strip-btn" id="aircraftKeyBtn" aria-label="Aircraft colour key" aria-haspopup="dialog" aria-controls="aircraftKeyDialog" data-explain-text="Aircraft colour key">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="5" cy="5" r="2"/><circle cx="5" cy="12" r="2"/><circle cx="5" cy="19" r="2"/><path d="M11 5h10M11 12h10M11 19h10"/></svg>
+                Aircraft key
             </button>
             <button type="button" class="strip-btn primary" onclick="generateReport()" data-explain-text="Generate Session Report">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
@@ -5294,6 +5299,7 @@ ACARS: ${r.statistics.acarsMessages} messages`;
     </script>
 
     <!-- Squawk Code Reference Modal -->
+    {% include 'partials/aircraft-key.html' %}
     <div id="squawkModal" class="squawk-modal">
         <div class="squawk-modal-content">
             <div class="squawk-modal-header">

@@ -2,6 +2,13 @@
 (function () {
   'use strict';
   const guide = /* catalogue */ {
+  "title-Aircraft colour key": {
+    "term": "Aircraft key",
+    "meaning": "Explains the colours, status rings and aircraft shapes used on the map.",
+    "matters": "Use the key to distinguish altitude bands, ground traffic, military aircraft and emergency squawks.",
+    "notMeaning": "A marker's shape or colour alone does not confirm an aircraft's identity or intentions.",
+    "category": "Guide"
+  },
   "title-Choose the receiver by its hardware and host; this selection is independent of ADS-B.": {
     "term": "Datalink receiver",
     "meaning": "Selects the physical SDR and the host that will decode ACARS or VDL2 messages.",
