@@ -52,7 +52,7 @@ def test_selected_aircraft_pushes_list_down(browser, base_url, width, height, th
         geometry = page.evaluate("""() => {
           const detail=document.querySelector('.selected-aircraft'),list=document.querySelector('.aircraft-list');
           const hidden=[];for(let e=document.querySelector('#lastAircraftAction');e&&e!==document.documentElement;e=e.parentElement){
-            const s=getComputedStyle(e);if(['hidden','auto','scroll','clip'].includes(s.overflowY)&&e.scrollHeight>e.clientHeight+2)hidden.push(e.id||e.className);
+            const s=getComputedStyle(e);if(['hidden','auto','scroll','clip'].includes(s.overflowY)&&e.scrollHeight>e.clientHeight+2)hidden.push(`${e.tagName}#${e.id}.${e.className}:${s.overflowY}`);
           }
           return {detailBottom:detail.getBoundingClientRect().bottom,listTop:list.getBoundingClientRect().top,hidden};
         }""")
@@ -97,6 +97,11 @@ def test_aircraft_uses_full_desktop_height(browser, base_url, embedded, monkeypa
             view = page
         for width, height in [(3008, 1692), (1920, 1080), (1366, 768)]:
             page.set_viewport_size({"width": width, "height": height})
+            view.wait_for_function("""() => {
+              const map=document.querySelector('.main-display').getBoundingClientRect();
+              const controls=document.querySelector('.controls-bar').getBoundingClientRect();
+              return Math.abs(controls.bottom-Math.max(innerHeight,map.top+320+controls.height))<=2;
+            }""")
             geometry = view.evaluate("""() => {
               const map=document.querySelector('.main-display').getBoundingClientRect();
               const controls=document.querySelector('.controls-bar').getBoundingClientRect();
@@ -139,5 +144,69 @@ def test_aircraft_map_tracks_content_resizing(browser, base_url):
         page.locator('#largeAircraftDetail').evaluate('el=>el.remove()')
         page.wait_for_function("old=>document.getElementById('radarMap').clientHeight<=old", arg=before)
         page.wait_for_function(matches, timeout=2000)
+    finally:
+        context.close()
+
+
+@pytest.mark.parametrize("embedded", [False, True])
+@pytest.mark.parametrize("theme", ["dark", "light"])
+def test_many_aircraft_do_not_push_map_controls_away(browser, base_url, embedded, theme, monkeypatch):
+    context = browser.new_context(viewport={"width": 1600, "height": 1000})
+    context.add_init_script(INIT_SCRIPT % theme)
+    context.route("**/*", lambda r: r.continue_() if r.request.url.startswith(base_url) else r.abort())
+    context.route("**/adsb/aircraft-photo/**", lambda r: r.fulfill(json={"photos": []}))
+    monkeypatch.setenv("AMI_URL", base_url)
+    page = context.new_page()
+    try:
+        if embedded:
+            context.route(base_url + "/layout-parent", lambda r: r.fulfill(content_type="text/html", body=
+                '<style>html,body{height:100%;margin:0}body{display:flex;flex-direction:column}'
+                'header{height:96px;flex:none}iframe{flex:1;border:0;width:100%;min-height:0}</style>'
+                '<header>AMI layout check</header><iframe src="/adsb/dashboard?ami=1"></iframe>'))
+            page.goto(base_url + "/layout-parent", wait_until="domcontentloaded")
+            view = page.frames[1]
+        else:
+            page.goto(base_url + "/adsb/dashboard", wait_until="domcontentloaded")
+            view = page
+        view.wait_for_function("typeof renderAircraftList === 'function'")
+        view.evaluate("""() => {
+          for(let i=0;i<50;i++) {
+            const icao=(0xA00000+i).toString(16).toUpperCase();
+            aircraft[icao]={icao,callsign:'TEST'+i,altitude:30000-i,lastSeen:Date.now()};
+          }
+          renderAircraftList();showAircraftDetails('A00000');
+          const detail=document.createElement('p');detail.style.height='2000px';
+          detail.textContent='Delayed selected aircraft details';document.querySelector('#selectedInfo').append(detail);
+        }""")
+        for width, height in [(3008,1692), (1600,1000), (1366,768), (390,844)]:
+            page.set_viewport_size({"width":width,"height":height})
+            if width >= 1024:
+                view.wait_for_function("""() => {
+                  const map=document.querySelector('.main-display').getBoundingClientRect();
+                  const controls=document.querySelector('.controls-bar').getBoundingClientRect();
+                  return Math.abs(controls.bottom-Math.max(innerHeight,map.top+320+controls.height))<=2;
+                }""")
+            geometry=view.evaluate("""() => {
+              const rect=s=>document.querySelector(s).getBoundingClientRect().toJSON();
+              return {map:rect('.main-display'),controls:rect('.controls-bar'),
+                sidebar:rect('.sidebar'),list:rect('.aircraft-list'),viewport:innerHeight};
+            }""")
+            assert abs(geometry['controls']['top']-geometry['map']['bottom']) <= 2, geometry
+            if width >= 1024:
+                assert geometry['controls']['bottom'] <= geometry['viewport']+2, geometry
+                assert geometry['controls']['right'] <= geometry['sidebar']['left']+2, geometry
+                assert geometry['list']['bottom'] > geometry['viewport']+1000, geometry
+            else:
+                assert geometry['sidebar']['top'] >= geometry['controls']['bottom']-2, geometry
+            shots = os.environ.get("INTERCEPT_LAYOUT_SCREENSHOTS")
+            if shots and theme == "dark" and width in (1600,390):
+                folder = Path(shots)
+                folder.mkdir(parents=True, exist_ok=True)
+                page.screenshot(path=str(folder / f"map-controls-{width}-{'embedded' if embedded else 'standalone'}.png"))
+            last=view.locator('#aircraftList .aircraft-item').last
+            last.scroll_into_view_if_needed()
+            last.click()
+            assert view.locator('#selectedInfo').inner_text().find('TEST49') >= 0
+            view.evaluate("window.scrollTo(0,0);showAircraftDetails('A00000')")
     finally:
         context.close()
