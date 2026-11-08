@@ -851,6 +851,7 @@ function showSettings() {
     if (modal) {
         lastSettingsFocusEl = document.activeElement;
         modal.classList.add('active');
+        if (document.getElementById('settings-sdr')?.classList.contains('active')) RemoteSdrHealth.load();
         modal.setAttribute('aria-hidden', 'false');
         const content = modal.querySelector('.settings-content');
         if (content) content.focus();
@@ -864,6 +865,7 @@ function hideSettings() {
     const modal = document.getElementById('settingsModal');
     if (modal) {
         modal.classList.remove('active');
+        RemoteSdrHealth.stop();
         modal.setAttribute('aria-hidden', 'true');
         if (lastSettingsFocusEl && typeof lastSettingsFocusEl.focus === 'function') {
             lastSettingsFocusEl.focus();
@@ -1392,6 +1394,7 @@ function switchSettingsTab(tabName) {
         loadObserverLocation();
     } else if (tabName === 'sdr') {
         loadSdrDeviceSettings();
+        RemoteSdrHealth.load();
     } else if (tabName === 'alerts') {
         loadVoiceAlertConfig();
         if (typeof AlertCenter !== 'undefined') {
@@ -1703,3 +1706,99 @@ function resetLayoutPreferences() {
 }
 
 window.resetLayoutPreferences = resetLayoutPreferences;
+
+
+// Separate saved reachability list: never changes a mode's receiver selection.
+const RemoteSdrHealth = (() => {
+    let entries = [], timer = null, busy = false;
+    const field = name => document.getElementById('remoteSdrHealth' + name);
+    async function request(path = '', options = {}) {
+        const response = await fetch('/settings/remote-sdrs' + path, options);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Remote SDR settings unavailable');
+        return data;
+    }
+    function error(message = '') { if (field('Error')) field('Error').textContent = message; }
+    function reset() {
+        field('Form').reset();
+        field('Id').value = '';
+        field('Save').textContent = 'Add remote SDR';
+    }
+    function render() {
+        const list = field('List');
+        list.replaceChildren();
+        if (!entries.length) {
+            const empty = document.createElement('p');
+            empty.className = 'settings-label-desc';
+            empty.textContent = 'No remote SDRs saved.';
+            list.append(empty);
+        }
+        for (const entry of entries) {
+            const row = document.createElement('div');
+            row.className = 'settings-row';
+            const details = document.createElement('div');
+            details.className = 'settings-label';
+            const name = document.createElement('strong');
+            name.textContent = entry.name;
+            const status = document.createElement('span');
+            status.className = 'settings-label-desc';
+            status.style.color = entry.state === 'online' ? 'var(--accent-green)' : 'var(--text-dim)';
+            const label = {online: 'Online', offline: 'Offline', unknown: 'Not checked yet'}[entry.state] || 'Not checked yet';
+            const lastSeen = entry.last_seen ? new Date(entry.last_seen).toLocaleString() : 'Never';
+            status.textContent = `${entry.host}:${entry.port} · ${label} · Last seen: ${lastSeen}`;
+            details.append(name, status);
+            row.append(details);
+            for (const [label, action] of [
+                ['Edit', () => {
+                    field('Id').value = entry.id;
+                    for (const key of ['name', 'host', 'port']) field(key[0].toUpperCase() + key.slice(1)).value = entry[key];
+                    field('Save').textContent = 'Save remote SDR';
+                    field('Name').focus();
+                }],
+                ['Remove', () => mutate('/' + entry.id, {method: 'DELETE'}, entry.id)]
+            ]) {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'check-assets-btn';
+                button.textContent = label;
+                button.setAttribute('aria-label', `${label} ${entry.name}`);
+                button.onclick = action;
+                row.append(button);
+            }
+            list.append(row);
+        }
+    }
+    async function load() {
+        if (!field('Panel')) return;
+        clearTimeout(timer);
+        try {
+            entries = (await request()).entries;
+            render();
+            error();
+        } catch (err) { error(err.message); }
+        timer = setTimeout(() => {
+            if (document.getElementById('settingsModal')?.classList.contains('active') &&
+                document.getElementById('settings-sdr')?.classList.contains('active')) load();
+        }, 10000);
+    }
+    async function mutate(path, options, removedId) {
+        if (busy) return;
+        busy = true;
+        field('Save').disabled = true;
+        try {
+            await request(path, options);
+            if (!removedId || field('Id').value === removedId) reset();
+            await load();
+        } catch (err) { error(err.message); }
+        finally { busy = false; field('Save').disabled = false; }
+    }
+    function save() {
+        const id = field('Id').value;
+        return mutate(id ? '/' + id : '', {
+            method: id ? 'PUT' : 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({name: field('Name').value, host: field('Host').value, port: field('Port').value})
+        });
+    }
+    return {load, save, reset, stop: () => clearTimeout(timer)};
+})();

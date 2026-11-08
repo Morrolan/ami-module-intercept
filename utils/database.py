@@ -954,13 +954,14 @@ def close_db() -> None:
 # =============================================================================
 
 
-def get_setting(key: str, default: Any = None) -> Any:
+def get_setting(key: str, default: Any = None, *, strict: bool = False) -> Any:
     """
     Get a setting value by key.
 
     Args:
         key: Setting key
         default: Default value if not found
+        strict: Raise database read errors instead of returning the default
 
     Returns:
         Setting value (auto-converted from JSON for complex types)
@@ -990,6 +991,8 @@ def get_setting(key: str, default: Any = None) -> Any:
             else:
                 return value
     except sqlite3.OperationalError:
+        if strict:
+            raise
         logger.warning("Database unavailable reading setting '%s', using default", key)
         return default
 

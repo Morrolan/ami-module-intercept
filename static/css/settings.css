@@ -672,3 +672,15 @@ html[data-ui-tier="enhanced"]:not([data-theme="light"]).map-cyber-enabled .leafl
     background: var(--accent-cyan-dim);
     color: var(--accent-cyan);
 }
+
+/* Remote endpoint details grow and wrap within the normal Settings scroll path. */
+#remoteSdrHealthList .settings-row {
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+#remoteSdrHealthList .settings-label {
+    flex: 1 1 180px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}

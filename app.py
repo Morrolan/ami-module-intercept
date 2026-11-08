@@ -1652,6 +1652,9 @@ def _init_app() -> None:
 
         time.sleep(1)  # Let the worker start serving first
 
+        from utils.remote_sdr_health import monitor as remote_sdr_monitor
+        remote_sdr_monitor.start()
+
         # Clean up stale processes from previous runs
         try:
             cleanup_stale_processes()

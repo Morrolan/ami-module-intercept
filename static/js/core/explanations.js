@@ -2,6 +2,13 @@
 (function () {
   'use strict';
   const guide = /* catalogue */ {
+  "title-Remote SDR health": {
+    "term": "Remote SDR health",
+    "meaning": "Checks whether each saved remote host accepts a TCP connection on its configured port, about once a minute with a three-second deadline.",
+    "matters": "Shows Online, Offline or Not checked yet and the last successful connection without starting a receiver or sending alerts.",
+    "notMeaning": "Online does not prove a receiver is decoding or sending data. A connection check can briefly occupy a single-client service such as rtl_tcp. Last seen resets when Intercept restarts or the entry is edited.",
+    "category": "Guide"
+  },
   "title-Teesside airport board": {
     "term": "Teesside airport board",
     "meaning": "Shows the airport's published arrivals, departures and estimates, plus separately received Draken aircraft.",

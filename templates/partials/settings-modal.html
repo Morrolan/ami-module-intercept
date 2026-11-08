@@ -221,6 +221,22 @@
                     </div>
                 </div>
             </div>
+            {% if session.get('role') == 'admin' %}
+            <div class="settings-group" id="remoteSdrHealthPanel">
+                <div class="settings-group-title" data-explain-text="Remote SDR health">Remote SDR health</div>
+                <p class="settings-label-desc">Checks saved TCP ports about every 60 seconds. Online means the port accepts connections; it does not confirm radio data. Checks briefly occupy a connection, so avoid services that only allow one client while receiving.</p>
+                <div id="remoteSdrHealthList"></div>
+                <form id="remoteSdrHealthForm" onsubmit="event.preventDefault(); RemoteSdrHealth.save()">
+                    <input type="hidden" id="remoteSdrHealthId">
+                    <div class="settings-row"><label for="remoteSdrHealthName">Name</label><input class="settings-input" id="remoteSdrHealthName" maxlength="80" required></div>
+                    <div class="settings-row"><label for="remoteSdrHealthHost">Host</label><input class="settings-input" id="remoteSdrHealthHost" maxlength="253" placeholder="Hostname or IP address" required></div>
+                    <div class="settings-row"><label for="remoteSdrHealthPort">TCP port</label><input class="settings-input" id="remoteSdrHealthPort" type="number" min="1" max="65535" step="1" required></div>
+                    <button class="check-assets-btn" type="submit" id="remoteSdrHealthSave">Add remote SDR</button>
+                    <button class="check-assets-btn" type="button" onclick="RemoteSdrHealth.reset()">Cancel edit</button>
+                </form>
+                <p id="remoteSdrHealthError" role="status" class="settings-label-desc"></p>
+            </div>
+            {% endif %}
         </div>
 
         <div id="settings-display" class="settings-section">

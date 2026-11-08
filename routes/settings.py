@@ -129,6 +129,8 @@ def save_settings() -> Response:
 
     try:
         saved = []
+        if "remote_sdr_health" in data:
+            return api_error("Use the remote SDR settings controls", 400)
         for key, value in data.items():
             # Validate key (alphanumeric, underscores, dots, hyphens)
             if not key or not all(c.isalnum() or c in "_.-" for c in key):
@@ -160,6 +162,8 @@ def get_single_setting(key: str) -> Response:
 @settings_bp.route("/<key>", methods=["PUT"])
 def update_single_setting(key: str) -> Response:
     """Update a single setting."""
+    if key == "remote_sdr_health":
+        return api_error("Use the remote SDR settings controls", 400)
     data = request.json or {}
     value = data.get("value")
 
@@ -177,6 +181,8 @@ def update_single_setting(key: str) -> Response:
 @settings_bp.route("/<key>", methods=["DELETE"])
 def delete_single_setting(key: str) -> Response:
     """Delete a setting."""
+    if key == "remote_sdr_health":
+        return api_error("Use the remote SDR settings controls", 400)
     try:
         deleted = delete_setting(key)
         if deleted:
@@ -354,3 +360,32 @@ blacklist r820t
             "successes": successes,
         }
     )
+
+
+@settings_bp.route("/remote-sdrs", methods=["GET", "POST"])
+@settings_bp.route("/remote-sdrs/<identifier>", methods=["PUT", "DELETE"])
+def remote_sdr_health(identifier=None):
+    """Owner-managed endpoints; cached health only, never probe in a request."""
+    import sqlite3
+
+    from flask import session
+
+    from utils.ami_access import enabled_account
+    from utils.remote_sdr_health import monitor
+
+    account = enabled_account(session.get("username")) if session.get("logged_in") else None
+    if not account or account["role"] != "admin":
+        return api_error("Administrator access required", 403)
+    try:
+        if request.method == "GET":
+            return api_success(data={"entries": monitor.entries()})
+        if request.method == "DELETE":
+            monitor.remove(identifier)
+            return api_success()
+        return api_success(data={"entry": monitor.save(request.get_json(silent=True), identifier)})
+    except ValueError as exc:
+        return api_error(str(exc), 400)
+    except KeyError:
+        return api_error("Remote SDR not found", 404)
+    except sqlite3.Error:
+        return api_error("Remote SDR settings temporarily unavailable", 503)
