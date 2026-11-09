@@ -183,7 +183,10 @@ def test_every_kind_the_journal_sends_is_in_the_manifest(anon_client, tmp_path):
     with journal.connect() as db:
         journal._append_gap(db, "ais", True, start, 7200, True)
         journal._append_gap(db, "ais", False, start + 1, 7200, True)
+    journal.sample_usb("missing", start)
+    journal.sample_usb("missing", start + 120)
     sent = {event["kind"] for _, event in journal.recent()}
-    assert sent >= {"decoder-health", "feed-gap"}
+    assert sent >= {"decoder-health", "feed-gap", "sdr-usb"}
     assert sent <= set(declared)
     assert declared["feed-gap"] == {"id": "feed-gap", "label": "Data gaps (feeds gone quiet)", "adminOnly": True}
+    assert declared["sdr-usb"] == {"id": "sdr-usb", "label": "Local RTL-SDR missing", "adminOnly": True}

@@ -743,7 +743,27 @@ def pwa_manifest() -> Response:
 @app.route("/devices")
 def get_devices() -> Response:
     """Get all detected SDR devices with hardware type info."""
-    return jsonify(describe_devices(SDRFactory.detect_devices()))
+    return jsonify(_with_local_health(describe_devices(SDRFactory.detect_devices())))
+
+
+def _with_local_health(devices: list[dict]) -> list[dict]:
+    """Mark the watched local RTL-SDR with its live state; nothing when not set up."""
+    from utils.sdr.local_health import WATCHED_INDEX, health
+
+    snapshot = health.snapshot()
+    if snapshot["enabled"]:
+        for device in devices:
+            if device.get("sdr_type") == "rtlsdr" and device.get("index") == WATCHED_INDEX:
+                device["health"] = snapshot["state"]
+    return devices
+
+
+@app.route("/devices/local-health")
+def get_local_sdr_health() -> Response:
+    """Live state of the watched local RTL-SDR, from the host watcher's heartbeat only."""
+    from utils.sdr.local_health import health
+
+    return jsonify(health.snapshot())
 
 
 _NOTE_PROTOCOLS = {"bluetooth", "wifi", "rf", "adsb", "ais", "dsc", "aprs", "meshtastic", "meshcore", "other"}

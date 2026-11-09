@@ -32,7 +32,8 @@ def manifest():
                            "session": "/api/module/session", "enter": "/ami/enter", "deepLinks": {
                         "aircraft": "/adsb/dashboard?ami=1", "vessels": "/ais/dashboard?ami=1"}},
                     "eventKinds": [{"id": "decoder-health", "label": "Decoder health", "adminOnly": True},
-                                   {"id": "feed-gap", "label": "Data gaps (feeds gone quiet)", "adminOnly": True}]})
+                                   {"id": "feed-gap", "label": "Data gaps (feeds gone quiet)", "adminOnly": True},
+                                   {"id": "sdr-usb", "label": "Local RTL-SDR missing", "adminOnly": True}]})
 
 
 @ami_bp.post("/api/module/session")

@@ -52,6 +52,7 @@ function refreshDevices() {
                 opt.value = d.index;
                 opt.dataset.sdrType = d.sdr_type || 'rtlsdr';
                 opt.textContent = `${d.index}: ${d.name}`;
+                window.LocalSdrHealth?.label(opt, d);
                 select.appendChild(opt);
             });
         })

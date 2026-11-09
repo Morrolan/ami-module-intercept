@@ -1006,6 +1006,7 @@
                 const opt = document.createElement('option');
                 opt.value = index;
                 opt.textContent = `SDR ${index}: ${dev.name}`;
+                window.LocalSdrHealth?.label(opt, dev);
                 sessionDeviceSelect.appendChild(opt);
             });
             sessionDeviceSelect.disabled = false;
