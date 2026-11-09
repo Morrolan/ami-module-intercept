@@ -6,7 +6,8 @@
     "term": "Click zoom",
     "meaning": "ON moves and zooms the map to a selected aircraft. OFF keeps the map fixed while showing aircraft details and highlighting the selection.",
     "matters": "Keep your view of surrounding traffic when choosing aircraft on the map, in the list or through linked messages. This device remembers your choice.",
-    "notMeaning": "Manual panning and zoom controls still work. Turning this off does not stop reception or aircraft updates."
+    "notMeaning": "Manual panning and zoom controls still work. Turning this off does not stop reception or aircraft updates.",
+    "category": "Guide"
   },
   "title-Local RTL-SDR": {
     "term": "Local RTL-SDR",
