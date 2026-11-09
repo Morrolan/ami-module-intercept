@@ -1626,15 +1626,23 @@ ACARS: ${r.statistics.acarsMessages} messages`;
             const distances = [maxRange * 0.25, maxRange * 0.5, maxRange * 0.75, maxRange];
             distances.forEach(nm => {
                 const meters = nm * 1852;
-                // Strong enough to read over satellite imagery (it was 1 px at 30%)
+                // Light dashed ring over a dark halo, so it reads on pale street maps
+                // as well as on dark tiles and satellite imagery
+                const halo = L.circle([observerLocation.lat, observerLocation.lon], {
+                    radius: meters,
+                    color: '#000000',
+                    fill: false,
+                    weight: 4,
+                    opacity: 0.45,
+                    interactive: false
+                });
                 const circle = L.circle([observerLocation.lat, observerLocation.lon], {
                     radius: meters,
-                    color: '#7cc4ff',
-                    fillColor: 'transparent',
-                    fillOpacity: 0,
-                    weight: 1.5,
-                    opacity: 0.75,
-                    dashArray: '6 5',
+                    color: '#8fd3ff',
+                    fill: false,
+                    weight: 2,
+                    opacity: 0.95,
+                    dashArray: '8 6',
                     interactive: false
                 });
 
@@ -1642,12 +1650,13 @@ ACARS: ${r.statistics.acarsMessages} messages`;
                 const label = L.marker([labelLat, observerLocation.lon], {
                     icon: L.divIcon({
                         className: 'range-label',
-                        html: `<span style="color: #4a9eff; font-size: 10px; background: rgba(0,0,0,0.7); padding: 1px 4px; border-radius: 2px;">${Math.round(nm)} nm</span>`,
+                        html: `<span style="color: #8fd3ff; font-size: 10px; background: rgba(0,0,0,0.7); padding: 1px 4px; border-radius: 2px;">${Math.round(nm)} nm</span>`,
                         iconSize: [40, 12],
                         iconAnchor: [20, 6]
                     })
                 });
 
+                rangeRingsLayer.addLayer(halo);
                 rangeRingsLayer.addLayer(circle);
                 rangeRingsLayer.addLayer(label);
             });

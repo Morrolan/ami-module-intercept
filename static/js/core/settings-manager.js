@@ -21,6 +21,14 @@ const Settings = {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
             subdomains: 'abc'
         },
+        // Same OSM tiles with town and city labels, darkened per tile by CSS
+        // (settings.css, .map-theme-dim) so bright aircraft, trails and rings stand out.
+        openstreetmap_dim: {
+            url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            subdomains: 'abc',
+            mapTheme: 'dim'
+        },
         cartodb_dark: {
             url: 'https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png',
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
@@ -421,6 +429,7 @@ const Settings = {
     _getMapThemeClass(config) {
         if (!config || !config.mapTheme) return null;
         if (config.mapTheme === 'cyber') return 'map-theme-cyber';
+        if (config.mapTheme === 'dim') return 'map-theme-dim';
         return null;
     },
 
@@ -445,7 +454,7 @@ const Settings = {
             container.style.background = '';
         }
 
-        container.classList.remove('map-theme-cyber');
+        container.classList.remove('map-theme-cyber', 'map-theme-dim');
 
         const resolvedConfig = config || this.getTileConfig();
         const themeClass = this._getMapThemeClass(resolvedConfig);
