@@ -20,7 +20,7 @@ SYNCED_KEYS = frozenset({
 })
 # LAYOUT_KEYS/LAYOUT_PREFIXES in settings-manager.js are all per device.
 PER_DEVICE_KEYS = (
-    'mainSidebarCollapsed', 'acarsSidebarCollapsed', 'vdl2SidebarCollapsed',
+    'adsb.clickZoom', 'mainSidebarCollapsed', 'acarsSidebarCollapsed', 'vdl2SidebarCollapsed',
     'intercept_nav_groups', 'intercept.runState.expanded', 'intercept.gps.skyView',
     'intercept.spyStations.view', 'pagerView', 'intercept.map.labels', 'sensorView',
     'meshTextOnly', 'autoScroll', 'btLocateDebug', 'btLocateHeatmapEnabled',

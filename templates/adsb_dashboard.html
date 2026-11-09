@@ -339,6 +339,7 @@
             <div class="control-group">
                 <span class="control-group-label">DISPLAY</span>
                 <div class="control-group-items">
+                    <button type="button" class="strip-btn" id="clickZoomBtn" aria-label="Click zoom: ON" aria-pressed="true" onclick="setClickZoom(!clickZoomEnabled)" data-explain="aircraft-click-zoom">Click zoom: ON</button>
                     <label data-explain-text="Show aircraft trails"><input type="checkbox" id="showTrails" checked onchange="toggleTrails()"> Trails</label>
                     <label data-explain-text="Show range rings"><input type="checkbox" id="showRangeRings" checked onchange="drawRangeRings()"> Rings</label>
                     <label data-explain-text="Callsign and flight level beside each aircraft, when zoomed in"><input type="checkbox" id="showLabels" checked onchange="setMapLabels(this.checked)"> Labels</label>
@@ -499,6 +500,29 @@
         let headingLines = null;       // components/track-icons.js
         let mapLabels = null;          // components/track-icons.js
         const LABELS_KEY = 'intercept.map.labels';
+        let clickZoomEnabled = true;
+        try { clickZoomEnabled = localStorage.getItem('adsb.clickZoom') !== '0'; } catch (e) { /* default on */ }
+
+        function setClickZoom(enabled) {
+            clickZoomEnabled = enabled;
+            try { localStorage.setItem('adsb.clickZoom', enabled ? '1' : '0'); } catch (e) { /* this visit only */ }
+            const button = document.getElementById('clickZoomBtn');
+            button.textContent = `Click zoom: ${enabled ? 'ON' : 'OFF'}`;
+            button.setAttribute('aria-pressed', String(enabled));
+            button.setAttribute('aria-label', button.textContent);
+            if (!enabled) {
+                // Cancel both stages of any selection flight already in progress.
+                mapCrosshairRequestId += 1;
+                clearTimeout(panelSelectionFallbackTimer);
+                clearTimeout(panelSelectionStageTimer);
+                panelSelectionFallbackTimer = null;
+                panelSelectionStageTimer = null;
+                if (radarMap) radarMap.stop();
+                if (mapCrosshairResetTimer) clearTimeout(mapCrosshairResetTimer);
+                mapCrosshairResetTimer = null;
+                document.getElementById('mapCrosshairOverlay')?.classList.remove('active');
+            }
+        }
 
         // "BAW123 FL350", or GND on the ground
         function aircraftLabel(ac) {
@@ -1901,6 +1925,7 @@ ACARS: ${r.statistics.acarsMessages} messages`;
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+            setClickZoom(clickZoomEnabled);
             // Bring the map up first so a later startup error cannot leave the
             // dashboard in a half-rendered "shell only" state.
             ensureAdsbMapBootstrapped();
@@ -3400,10 +3425,8 @@ ACARS: ${r.statistics.acarsMessages} messages`;
                 const targetLat = ac.lat;
                 const targetLon = ac.lon;
 
-                // Focus-in crosshair animation for every selection source —
-                // clicking a plane on the map, in the list, or in a linked
-                // message all fly to the aircraft with the crosshair sweep.
-                if (radarMap) {
+                // Selection details and highlighting work even when the map is fixed.
+                if (radarMap && clickZoomEnabled) {
                     runPanelSelectionAnimation(targetLat, targetLon, mapCrosshairRequestId);
                     return;
                 }
