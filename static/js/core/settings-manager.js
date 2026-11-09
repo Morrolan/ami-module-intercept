@@ -21,7 +21,7 @@ const Settings = {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
             subdomains: 'abc'
         },
-        // Same OSM tiles with town and city labels, darkened per tile by CSS
+        // Same OSM tiles as "OpenStreetMap", but themed and darkened by CSS
         // (settings.css, .map-theme-dim) so bright aircraft, trails and rings stand out.
         openstreetmap_dim: {
             url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
