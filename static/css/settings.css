@@ -505,16 +505,27 @@ html:not([data-ui-tier="lean"]) .leaflet-container.map-theme-cyber .leaflet-tile
     opacity: 1;
 }
 
-/* Dimmed street map (OpenStreetMap Dimmed): darker, slightly desaturated tiles that keep
-   town and city labels readable, so bright aircraft, trails and range rings stand out.
-   Per tile, like the cyber tint, and specific enough to win over the enhanced-tier tint. */
+/* Dimmed street map (OpenStreetMap Dimmed): the same themed treatment as regular
+   OpenStreetMap (cyber/teal tint by tier), but darker so bright aircraft, trails
+   and range rings stand out. Per tile, like other tints. */
 .leaflet-container.map-theme-dim {
     background: #1b1f24;
 }
 
+/* Default / cyber-themed contexts: darker cyber tint */
 html:not([data-ui-tier="lean"]) .leaflet-container.map-theme-dim .leaflet-tile-pane .leaflet-tile {
-    filter: brightness(0.5) contrast(1.15) saturate(0.65) !important;
+    filter: sepia(0.74) hue-rotate(176deg) saturate(1.72) brightness(0.62) contrast(1.12) !important;
     opacity: 1;
+}
+
+/* Enhanced tier: darker teal theme tint (overrides the generic enhanced tile tint) */
+html[data-ui-tier="enhanced"] .leaflet-container.map-theme-dim .leaflet-tile-pane .leaflet-tile {
+    filter: sepia(0.85) hue-rotate(150deg) saturate(1.35) brightness(0.48) contrast(1.12) !important;
+}
+
+/* Hard global fallback when map-cyber-enabled is active */
+html.map-cyber-enabled .leaflet-container.map-theme-dim .leaflet-tile {
+    filter: sepia(0.74) hue-rotate(176deg) saturate(1.72) brightness(0.62) contrast(1.12) !important;
 }
 
 /* Hard global fallback: enforce cyber tint on all Leaflet tile images — not lean */
