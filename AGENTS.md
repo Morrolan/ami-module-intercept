@@ -199,6 +199,8 @@ Owner-reported look-and-feel mismatches with AMI (2026-10-24). Not urgent; fold 
 - `static/css/ami-theme.css` is a new fork-owned visual layer, loaded once by every document head. Preserve semantic spectrum/map colours and local/offline assets. Embed via `?ami=1`; allow framing only from the configured AMI origin and self. The UI still requires Intercept's own login.
 - See `docs/AMI.md` for setup, tests and deployment. No version bumps or live deployment without the owner's authorization; hardware mappings must be explicit. Never add agent attribution to commits.
 
+- Never give the owner an image tag until the commit is on `origin/main` and the "Build and Push Docker Image" run for that exact commit has succeeded. Always give the full tag, `ghcr.io/morrolan/ami-module-intercept:sha-<full 40-char commit>`; no image exists for an unpushed or PR-only commit, so Portainer can't redeploy and Intercept goes offline.
+
 - Static asset URLs append `-ami1` to the upstream version as a cache key; the displayed release version is unchanged. Change the asset revision when future fork changes would otherwise reuse cached scripts.
 
 - Embedded speech uses `window.InterceptAMI` in ami-bridge.js and AMI’s `ami-speak`/`ami-speech` messages. VoiceAlerts keeps its queue/mute/source choices; automatic speech also requires AMI autoplay. Never synthesize locally inside AMI or expose separate voice/rate/pitch choices there. Standalone speech remains native.
