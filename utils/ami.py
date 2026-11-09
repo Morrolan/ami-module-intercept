@@ -19,6 +19,7 @@ from urllib.parse import urlsplit
 
 from config import VERSION
 from utils.sdr.hotplug import status as hotplug_status
+from utils.sdr.local_health import health as local_sdr_health
 
 log = logging.getLogger(__name__)
 PROCESSES = {
@@ -126,6 +127,9 @@ def contacts(kind, limit):
                     latest is None or now - latest > store.max_age)
 
 
+USB_MISSING_SECONDS = 120
+
+
 class EventJournal:
     """Durable, bounded health transitions. Never stores decoded messages or device identities."""
     def __init__(self, path):
@@ -137,6 +141,7 @@ class EventJournal:
                 CREATE TABLE IF NOT EXISTS events (seq INTEGER PRIMARY KEY AUTOINCREMENT, created REAL NOT NULL, body TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS state (name TEXT PRIMARY KEY, value TEXT NOT NULL, since REAL NOT NULL, alerted INTEGER NOT NULL DEFAULT 0);
                 CREATE TABLE IF NOT EXISTS feed_state (name TEXT PRIMARY KEY, running INTEGER NOT NULL, quiet_since REAL NOT NULL, alerted INTEGER NOT NULL DEFAULT 0);
+                CREATE TABLE IF NOT EXISTS usb_state (name TEXT PRIMARY KEY, missing_since REAL, alerted INTEGER NOT NULL DEFAULT 0);
             """)
 
     @contextmanager
@@ -198,6 +203,40 @@ class EventJournal:
                 db.execute("INSERT OR REPLACE INTO feed_state VALUES (?,?,?,?)",
                            (mode, running, quiet_since, alerted))
 
+    def sample_usb(self, state, now=None):
+        """Warn once the watched local RTL-SDR has been missing for USB_MISSING_SECONDS.
+
+        Only "missing" (the watcher sees it gone) counts. "not_reporting" neither
+        opens nor clears anything; it returning, or monitoring being switched off,
+        clears an open warning. Persisted, so restarts neither re-alert nor forget.
+        """
+        now = time.time() if now is None else now
+        with self.lock, self.connect() as db:
+            row = db.execute("SELECT missing_since,alerted FROM usb_state WHERE name='local'").fetchone()
+            missing_since, alerted = row or (None, 0)
+            if state == "missing":
+                missing_since = missing_since if missing_since is not None else now
+                if not alerted and now - missing_since >= USB_MISSING_SECONDS:
+                    self._append_usb(db, True, now, now - missing_since, state)
+                    alerted = 1
+            elif state in ("online", "not_set_up"):
+                if alerted:
+                    self._append_usb(db, False, now, 0, state)
+                missing_since, alerted = None, 0
+            db.execute("INSERT OR REPLACE INTO usb_state VALUES ('local',?,?)", (missing_since, alerted))
+
+    @staticmethod
+    def _append_usb(db, failed, now, missing, state):
+        key = "sdr-usb:local:warning"
+        event = {"module": "intercept", "kind": "sdr-usb", "severity": "warning" if failed else "info",
+                 "title": f"Local RTL-SDR missing for {int(missing // 60)} minutes" if failed else "Resolved: local RTL-SDR",
+                 "body": ("The USB receiver with the configured serial is not connected. "
+                          "Decoders using it are waiting for it to return.") if failed else (
+                     "The receiver is connected again." if state == "online" else "USB receiver monitoring is no longer set up."),
+                 "eventTime": iso(now), "observedAt": iso(now), "users": None,
+                 "dedupeKey": key if failed else f"{key}:resolved:{now}", "clears": None if failed else key}
+        EventJournal._store_event(db, event, now)
+
     @staticmethod
     def _append_gap(db, mode, failed, now, quiet, running):
         key = f"feed-gap:{mode}"
@@ -258,6 +297,7 @@ def _monitor():
             _journal.sample(process_states())
             states, timestamps = feed_snapshot()
             _journal.sample_feeds(states, timestamps)
+            _journal.sample_usb(local_sdr_health.snapshot()["state"])
         except Exception:
             log.exception("AMI health sample failed")
         time.sleep(15)
@@ -272,9 +312,10 @@ def status():
 def panel():
     states = process_states()
     receiver_data = receivers()
-    usb = hotplug_status()
-    usb_tiles = [{"label": "SDR USB", "value": "Connected" if usb["available"] else "Waiting for receiver",
-                  "level": "ok" if usb["available"] else "warn"}] if usb["enabled"] else []
+    usb = local_sdr_health.snapshot()
+    usb_tiles = [{"label": "SDR USB", "value": {"online": "Connected", "missing": "Waiting for receiver",
+                                                "not_reporting": "Not reporting"}[usb["state"]],
+                  "level": "ok" if usb["state"] == "online" else "warn"}] if usb["enabled"] else []
     return {"title": "Intercept", "updatedAt": iso(), "sections": [
         {"id": "receivers", "title": "Signal intelligence", "tiles": [
             *usb_tiles,

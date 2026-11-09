@@ -7,6 +7,11 @@
     "meaning": "ON moves and zooms the map to a selected aircraft. OFF keeps the map fixed while showing aircraft details and highlighting the selection.",
     "matters": "Keep your view of surrounding traffic when choosing aircraft on the map, in the list or through linked messages. This device remembers your choice.",
     "notMeaning": "Manual panning and zoom controls still work. Turning this off does not stop reception or aircraft updates.",
+  "title-Local RTL-SDR": {
+    "term": "Local RTL-SDR",
+    "meaning": "Whether the USB receiver plugged into this server, recognised by its serial number, is connected. The host's USB watcher reports it every second; the radio itself is never opened for the check.",
+    "matters": "Shows Online, Unplugged or Not reporting, and the same state appears beside it in device menus. If it stays unplugged for two minutes, AMI raises a warning that clears when it returns.",
+    "notMeaning": "Online does not prove a decoder is receiving signals. Not reporting means the watcher is silent, not that the receiver is gone. Last seen resets when Intercept restarts.",
     "category": "Guide"
   },
   "title-Remote receivers": {

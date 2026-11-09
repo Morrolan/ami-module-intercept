@@ -3115,6 +3115,7 @@ const Waterfall = (function () {
             const label = d.serial ? `${d.name} [${d.serial}]` : d.name;
             return `<option value="${_escapeHtml(`${d.sdr_type}:${d.index}`)}">${_escapeHtml(label)}</option>`;
         }).join('');
+        window.LocalSdrHealth?.labelAll(sel, devices, (o, d) => o.value === `${d.sdr_type}:${d.index}`);
 
         if (previous && [...sel.options].some((opt) => opt.value === previous)) {
             sel.value = previous;

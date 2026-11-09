@@ -21,7 +21,8 @@ MAX_STATE_AGE = 3.0
 
 def read_state(path):
     """Only the small, root-published heartbeat; never probe a receiver."""
-    absent = {"available": False, "generation": None}
+    # reporting: the watcher's heartbeat is present and fresh (else we cannot tell).
+    absent = {"available": False, "generation": None, "reporting": False}
     try:
         fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
         with os.fdopen(fd, "r") as source:
@@ -50,7 +51,7 @@ def read_state(path):
             return absent
         if data["available"] and not re.fullmatch(r"/dev/bus/usb/001/[0-9]{3}", str(data.get("node", ""))):
             return absent
-        return {"available": data["available"], "generation": generation}
+        return {"available": data["available"], "generation": generation, "reporting": True}
     except (OSError, ValueError, TypeError):
         return absent
 

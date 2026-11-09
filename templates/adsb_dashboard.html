@@ -2058,6 +2058,7 @@ ACARS: ${r.statistics.acarsMessages} messages`;
                 option.dataset.sdrType = sdrType;
                 option.dataset.index = idx;
                 option.textContent = `SDR ${idx}: ${dev.name || dev.type || 'SDR'}`;
+                window.LocalSdrHealth?.label(option, dev);
                 select.appendChild(option);
             });
             if (select.id === 'adsbDeviceSelect') window.AdsbRemoteReceiver?.refresh();

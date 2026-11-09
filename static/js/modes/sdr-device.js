@@ -133,6 +133,8 @@ function onSDRTypeChanged() {
             const serialSuffix = d.serial && d.serial !== 'N/A' && d.serial !== 'Unknown' ? ` (SN: ${d.serial})` : '';
             return `<option value="${d.index}" data-sdr-type="${escapeHtml(d.sdr_type || 'rtlsdr')}">${d.index}: ${escapeHtml(d.name)}${escapeHtml(serialSuffix)}</option>`;
         }).join('');
+        window.LocalSdrHealth?.labelAll(select, filteredDevices,
+            (o, d) => o.value === String(d.index) && o.dataset.sdrType === (d.sdr_type || 'rtlsdr'));
     }
 
     // Update capabilities display

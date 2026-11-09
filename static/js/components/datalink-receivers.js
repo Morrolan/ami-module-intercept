@@ -20,7 +20,11 @@
         if (!select) return;
         if (state.selected === null && receivers.length) state.selected = receivers.find(r => r.source === 'local')?.value || '';
         select.replaceChildren();
-        for (const receiver of receivers) select.append(option(receiver.value, receiver.label));
+        for (const receiver of receivers) {
+            const node = option(receiver.value, receiver.label);
+            if (receiver.device_info) window.LocalSdrHealth?.label(node, receiver.device_info);
+            select.append(node);
+        }
         if (state.running && !receivers.some(r => r.value === state.selected)) {
             const label = state.active
                 ? `${host(state.source)} — SDR ${state.active.device} (${state.active.sdr_type}) — running`
@@ -41,6 +45,7 @@
             const r = {source, device: String(index), sdr_type: device.sdr_type || 'rtlsdr'};
             r.value = key(r);
             r.label = `${host(source)} — SDR ${index}: ${device.name || device.type || r.sdr_type}`;
+            if (source === 'local') r.device_info = device;
             return [r];
         });
     }
