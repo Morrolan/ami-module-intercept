@@ -1778,6 +1778,7 @@ const RemoteSdrHealth = (() => {
             const data = await request();
             entries = data.entries;
             types = data.types || types;
+            if (!field('Id').value && !field('Port').value) typeChanged();
             render();
             error();
         } catch (err) { error(err.message); }
