@@ -2,6 +2,13 @@
 (function () {
   'use strict';
   const guide = /* catalogue */ {
+  "aircraft-click-zoom": {
+    "term": "Click zoom",
+    "meaning": "ON moves and zooms the map to a selected aircraft. OFF keeps the map fixed while showing aircraft details and highlighting the selection.",
+    "matters": "Keep your view of surrounding traffic when choosing aircraft on the map, in the list or through linked messages. This device remembers your choice.",
+    "notMeaning": "Manual panning and zoom controls still work. Turning this off does not stop reception or aircraft updates.",
+    "category": "Guide"
+  },
   "title-Remote receivers": {
     "term": "Remote receivers",
     "meaning": "The one shared list of remote receivers, managed by admins. Each has a type; ADS-B feeds appear in the ADS-B device menu for everyone. Each host and port is checked about once a minute with a three-second deadline.",
