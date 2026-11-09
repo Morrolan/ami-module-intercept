@@ -508,6 +508,7 @@
                             const opt = document.createElement('option');
                             opt.value = d.index;
                             opt.textContent = `SDR ${d.index}: ${d.name}`;
+                            window.LocalSdrHealth?.label(opt, d);
                             opt.dataset.sdrType = d.sdr_type || 'rtlsdr';
                             aisSelect.appendChild(opt);
                         });
@@ -523,6 +524,7 @@
                             const opt = document.createElement('option');
                             opt.value = d.index;
                             opt.textContent = `SDR ${d.index}: ${d.name}`;
+                            window.LocalSdrHealth?.label(opt, d);
                             opt.dataset.sdrType = d.sdr_type || 'rtlsdr';
                             dscSelect.appendChild(opt);
                         });
@@ -1761,6 +1763,7 @@
                         const opt = document.createElement('option');
                         opt.value = device.index;
                         opt.textContent = `Device ${device.index}: ${device.name || device.type || 'SDR'}`;
+                        window.LocalSdrHealth?.label(opt, device);
                         select.appendChild(opt);
                     });
                 }

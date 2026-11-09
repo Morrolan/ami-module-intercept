@@ -860,7 +860,7 @@ function showSettings() {
     if (modal) {
         lastSettingsFocusEl = document.activeElement;
         modal.classList.add('active');
-        if (document.getElementById('settings-sdr')?.classList.contains('active')) RemoteSdrHealth.load();
+        if (document.getElementById('settings-sdr')?.classList.contains('active')) { RemoteSdrHealth.load(); LocalSdrHealthPanel.load(); }
         modal.setAttribute('aria-hidden', 'false');
         const content = modal.querySelector('.settings-content');
         if (content) content.focus();
@@ -875,6 +875,7 @@ function hideSettings() {
     if (modal) {
         modal.classList.remove('active');
         RemoteSdrHealth.stop();
+        LocalSdrHealthPanel.stop();
         modal.setAttribute('aria-hidden', 'true');
         if (lastSettingsFocusEl && typeof lastSettingsFocusEl.focus === 'function') {
             lastSettingsFocusEl.focus();
@@ -1404,6 +1405,7 @@ function switchSettingsTab(tabName) {
     } else if (tabName === 'sdr') {
         loadSdrDeviceSettings();
         RemoteSdrHealth.load();
+        LocalSdrHealthPanel.load();
     } else if (tabName === 'alerts') {
         loadVoiceAlertConfig();
         if (typeof AlertCenter !== 'undefined') {
@@ -1823,4 +1825,44 @@ const RemoteSdrHealth = (() => {
         if (port && (!typed || known.includes(typed))) field('Port').value = port;
     }
     return {load, save, reset, typeChanged, stop: () => clearTimeout(timer)};
+})();
+
+
+// The watched local RTL-SDR (host USB watcher, matched by serial); read-only for everyone.
+const LocalSdrHealthPanel = (() => {
+    let timer = null;
+    const when = iso => iso ? new Date(iso).toLocaleString() : null;
+    const views = {
+        online: d => ['Online', 'var(--accent-green)', 'Connected now.'],
+        missing: d => ['Unplugged', 'var(--accent-orange)',
+            `Missing since ${when(d.missing_since) || 'just now'}. Last seen: ${when(d.last_seen) || 'not since Intercept started'}. Decoders using it wait for it to return.`],
+        not_reporting: d => ['Not reporting', 'var(--accent-orange)',
+            `The host's USB watcher has stopped updating, so its state is unknown. Last seen: ${when(d.last_seen) || 'not since Intercept started'}.`],
+        not_set_up: d => ['Not set up', 'var(--text-dim)',
+            'USB monitoring is not configured on this server (INTERCEPT_SDR_HOTPLUG_STATE).'],
+    };
+    async function load() {
+        const state = document.getElementById('localSdrHealthState');
+        const detail = document.getElementById('localSdrHealthDetail');
+        if (!state || !detail) return;
+        clearTimeout(timer);
+        try {
+            const response = await fetch('/devices/local-health', {credentials: 'same-origin'});
+            if (!response.ok) throw new Error();
+            const data = await response.json();
+            const [label, colour, text] = (views[data.state] || views.not_reporting)(data);
+            state.textContent = label;
+            state.style.color = colour;
+            detail.textContent = text;
+        } catch (_) {
+            state.textContent = 'Unavailable';
+            state.style.color = 'var(--text-dim)';
+            detail.textContent = 'Could not read the receiver state.';
+        }
+        timer = setTimeout(() => {
+            if (document.getElementById('settingsModal')?.classList.contains('active') &&
+                document.getElementById('settings-sdr')?.classList.contains('active')) load();
+        }, 10000);
+    }
+    return {load, stop: () => clearTimeout(timer)};
 })();

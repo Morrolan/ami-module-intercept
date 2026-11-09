@@ -222,6 +222,11 @@
                     </div>
                 </div>
             </div>
+            <div class="settings-group" id="localSdrHealthPanel">
+                <div class="settings-group-title" data-explain-text="Local RTL-SDR">Local RTL-SDR</div>
+                <p class="settings-label-desc">The USB receiver on this server, recognised by its serial number. Checked from the host's USB watcher without opening the radio.</p>
+                <div class="settings-row"><div class="settings-label"><strong id="localSdrHealthState">Checking…</strong><span class="settings-label-desc" id="localSdrHealthDetail"></span></div></div>
+            </div>
             {% if session.get('role') == 'admin' %}
             <div class="settings-group" id="remoteSdrHealthPanel">
                 <div class="settings-group-title" data-explain-text="Remote receivers">Remote receivers</div>

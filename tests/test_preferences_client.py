@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 
-@pytest.mark.parametrize('script', ['preferences.test.cjs', 'adsb-remote.test.cjs'])
+@pytest.mark.parametrize('script', ['preferences.test.cjs', 'adsb-remote.test.cjs', 'local-sdr-health.test.cjs'])
 def test_client_preferences(script):
     if not shutil.which('node'):
         pytest.skip('Node is needed for isolated JavaScript checks')
