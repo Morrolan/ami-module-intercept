@@ -1156,6 +1156,20 @@ def start_adsb():
             remote_sbs_port = validate_rtl_tcp_port(remote_sbs_port)
         except ValueError as e:
             return api_error(str(e), 400)
+        # Remote feeds come only from the admin-managed shared receiver list.
+        import sqlite3
+
+        from utils.remote_sdr_health import monitor as remote_receivers
+
+        try:
+            listed = remote_receivers.find("adsb_sbs", remote_sbs_host, remote_sbs_port)
+        except sqlite3.Error:
+            return api_error("Remote receivers temporarily unavailable", 503)
+        if listed is None:
+            return api_error(
+                "That remote ADS-B feed is not in the shared receiver list. An admin can add it under Settings.",
+                403,
+            )
 
         remote_addr = f"{remote_sbs_host}:{remote_sbs_port}"
         logger.info(f"Connecting to remote dump1090 SBS at {remote_addr}")

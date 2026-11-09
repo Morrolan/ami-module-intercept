@@ -15,6 +15,9 @@ def clean_session(monkeypatch):
     monkeypatch.setattr(adsb, 'adsb_active_device', None)
     monkeypatch.setattr(adsb, '_runtime_session', None, raising=False)
     monkeypatch.setattr(adsb.threading, 'Thread', Mock())
+    # These tests are about session identity; treat every feed as listed.
+    import utils.remote_sdr_health as receivers
+    monkeypatch.setattr(receivers.monitor, 'find', lambda kind, host, port: {'id': 'x'})
 
 
 def test_remote_receiver_survives_status_reload_without_history(client):
@@ -117,3 +120,12 @@ def test_status_during_start_waits_for_complete_receiver_identity(client, monkey
         reader.join(3)
     assert status[0]['tracking_active']
     assert status[0]['session']['remote_host'] == 'new-host'
+
+
+def test_remote_feed_must_be_in_shared_list(client, monkeypatch):
+    import utils.remote_sdr_health as receivers
+    monkeypatch.setattr(receivers.monitor, 'find', lambda kind, host, port: None)
+    response = client.post('/adsb/start', json={'remote_sbs_host': '10.10.42.99', 'remote_sbs_port': 30003})
+    assert response.status_code == 403
+    assert 'shared receiver list' in response.json['message']
+    assert client.get('/adsb/session').json['session'] is None

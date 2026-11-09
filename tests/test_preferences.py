@@ -137,10 +137,12 @@ def test_all_document_heads_bootstrap_first():
 
 
 def test_remote_adsb_receiver_is_persisted_and_bootstrapped(client):
-    value = json.dumps({"host": "10.10.42.10", "port": 30003, "enabled": True})
+    value = json.dumps({"id": "a" * 32, "host": "10.10.42.10", "port": 30003, "enabled": True})
     assert put(client, {"adsb.remoteReceiver": value}).status_code == 200
     assert client.get(URL).json["prefs"]["adsb.remoteReceiver"] == value
     html = client.get("/adsb/dashboard").get_data(as_text=True)
     payload = re.search(r'id="intercept-account-prefs" type="application/json">(.*?)</script>', html, re.S)[1]
     assert json.loads(payload)["prefs"]["adsb.remoteReceiver"] == value
-    assert 'id="saveRemoteSbs"' in html
+    # Feeds come from the shared list; the old free-text Save control is gone.
+    assert 'id="saveRemoteSbs"' not in html
+    assert 'id="remoteSbsHealth"' in html

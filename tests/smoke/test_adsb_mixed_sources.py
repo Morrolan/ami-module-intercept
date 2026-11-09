@@ -23,6 +23,8 @@ LOCAL_SDRS = [
     {"index": 1, "sdr_type": "rtlsdr", "name": "Local RTL B"},
 ]
 AGENT_SDRS = [{"index": 0, "sdr_type": "rtlsdr", "name": "Agent RTL"}]
+FEED = {"id": "f" * 32, "name": "Roof Pi", "host": "10.10.42.6", "port": 30003, "type": "adsb_sbs",
+        "state": "online", "last_seen": None}
 
 RESPONSES = {
     ("GET", "/controller/agents"): {"agents": [AGENT]},
@@ -32,6 +34,7 @@ RESPONSES = {
     ("POST", "/controller/agents/7/acars/start"): {"status": "success", "result": {"status": "started"}},
     ("POST", "/controller/agents/7/acars/stop"): {"status": "success", "result": {"status": "stopped"}},
     ("GET", "/devices"): LOCAL_SDRS,
+    ("GET", "/settings/remote-receivers"): {"status": "success", "entries": [FEED]},
     ("GET", "/devices/status"): [],
     ("POST", "/adsb/start"): {"status": "started"},
     ("POST", "/acars/start"): {"status": "started"},
@@ -76,6 +79,11 @@ def page(browser, base_url):
     page.wait_for_function("[...document.querySelector('#vdl2DeviceSelect').options].some(o=>o.value==='7|rtlsdr:0')")
     yield page
     context.close()
+
+
+def _choose_remote_feed(page):
+    page.wait_for_function("[...document.querySelector('#adsbDeviceSelect').options].some(o=>o.value==='remote-sbs:'+'f'.repeat(32))")
+    page.select_option('#adsbDeviceSelect', 'remote-sbs:' + FEED['id'])
 
 
 def _choose_receiver(page, panel, source, device='0'):
@@ -135,8 +143,7 @@ def test_datalink_only_conflicts_with_actual_local_adsb_device(page, mode, remot
       AppFeedback.confirmAction=async details=>{receiverConflicts.push(details);return false;};
     }""")
     if remote:
-        page.check('#useRemoteDump1090')
-        page.fill('#remoteSbsHost', '10.10.42.6')
+        _choose_remote_feed(page)
     page.click('#startBtn')
     page.wait_for_function('isTracking === true')
     if mode == 'vdl2':
@@ -178,8 +185,7 @@ def test_existing_session_ownership_overrides_requested_receiver(page, actual_re
       AppFeedback.confirmAction=async details=>{receiverConflicts.push(details);return false;};
     }""")
     if not actual_remote:
-        page.check('#useRemoteDump1090')
-        page.fill('#remoteSbsHost', '10.10.42.6')
+        _choose_remote_feed(page)
     page.click('#startBtn')
     page.wait_for_function('isTracking === true')
     page.click('#vdl2CollapseBtn')

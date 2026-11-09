@@ -371,6 +371,7 @@ def remote_sdr_health(identifier=None):
     from flask import session
 
     from utils.ami_access import enabled_account
+    from utils.remote_sdr_health import TYPES as REMOTE_TYPES
     from utils.remote_sdr_health import monitor
 
     account = enabled_account(session.get("username")) if session.get("logged_in") else None
@@ -378,7 +379,8 @@ def remote_sdr_health(identifier=None):
         return api_error("Administrator access required", 403)
     try:
         if request.method == "GET":
-            return api_success(data={"entries": monitor.entries()})
+            types = [{"id": key, **value} for key, value in REMOTE_TYPES.items()]
+            return api_success(data={"entries": monitor.entries(), "types": types})
         if request.method == "DELETE":
             monitor.remove(identifier)
             return api_success()
@@ -389,3 +391,21 @@ def remote_sdr_health(identifier=None):
         return api_error("Remote SDR not found", 404)
     except sqlite3.Error:
         return api_error("Remote SDR settings temporarily unavailable", 503)
+
+
+@settings_bp.route("/remote-receivers", methods=["GET"])
+def remote_receivers():
+    """Read-only shared list for any signed-in user, optionally one type."""
+    import sqlite3
+
+    from utils.remote_sdr_health import TYPES, monitor
+
+    kind = request.args.get("type") or None
+    if kind is not None and kind not in TYPES:
+        return api_error("Unknown receiver type", 400)
+    fields = ("id", "name", "host", "port", "type", "state", "last_seen")
+    try:
+        entries = [{k: e[k] for k in fields} for e in monitor.entries(kind)]
+    except sqlite3.Error:
+        return api_error("Remote receivers temporarily unavailable", 503)
+    return api_success(data={"entries": entries})

@@ -386,16 +386,17 @@
             <div class="control-group tracking-group">
                 <span class="control-group-label">ADS-B TRACKING</span>
                 <div class="control-group-items">
-                    <label data-explain-text="Use remote dump1090"><input type="checkbox" id="useRemoteDump1090" onchange="toggleRemoteDump1090()"> Remote</label>
-                    <span class="remote-dump1090-controls" style="display: none;">
-                        <input type="text" id="remoteSbsHost" aria-label="Remote ADS-B host" placeholder="Host" style="width: 70px;">
-                        <input type="number" id="remoteSbsPort" aria-label="Remote ADS-B port" value="30003" min="1" max="65535" style="width: 70px;">
+                    <!-- Remote feeds are chosen in the device menu from the shared receiver list (Settings). -->
+                    <span class="remote-dump1090-controls" hidden>
+                        <input type="checkbox" id="useRemoteDump1090" tabindex="-1" aria-hidden="true">
+                        <input type="hidden" id="remoteSbsHost">
+                        <input type="hidden" id="remoteSbsPort" value="30003">
                     </span>
-                    <button type="button" class="strip-btn" id="saveRemoteSbs" aria-label="Save remote ADS-B receiver">Save</button>
-                    <span id="remoteSbsSaveStatus" role="status" aria-live="polite"></span>
                     <select id="adsbDeviceSelect" data-explain-text="SDR device for ADS-B (1090 MHz)">
                         <option value="0">SDR 0</option>
                     </select>
+                    <span id="remoteSbsHealth" class="remote-sbs-health" hidden data-explain-text="Remote receiver health"></span>
+                    <span id="remoteSbsSaveStatus" role="status" aria-live="polite"></span>
                     <label data-explain-text="SDR gain in dB (0 = auto)" style="display:flex;align-items:center;gap:3px;font-size:11px;">
                         Gain <input type="number" id="adsbGainInput" value="40" min="0" max="50" step="1" style="width:46px;" data-explain-text="SDR gain in dB">
                     </label>
@@ -2336,9 +2337,6 @@ ACARS: ${r.statistics.acarsMessages} messages`;
         // ============================================
 
         function toggleRemoteDump1090() {
-            const useRemote = document.getElementById('useRemoteDump1090').checked;
-            const controls = document.querySelector('.remote-dump1090-controls');
-            controls.style.display = useRemote ? 'flex' : 'none';
             window.AdsbRemoteReceiver?.refresh();
             updateSourceIndicator();
         }

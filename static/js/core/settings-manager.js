@@ -1710,19 +1710,22 @@ window.resetLayoutPreferences = resetLayoutPreferences;
 
 // Separate saved reachability list: never changes a mode's receiver selection.
 const RemoteSdrHealth = (() => {
-    let entries = [], timer = null, busy = false;
+    let entries = [], types = [], timer = null, busy = false;
+    const typeLabel = id => (types.find(t => t.id === id) || {}).label || 'Other TCP service';
+    const defaultPort = id => (types.find(t => t.id === id) || {}).port;
     const field = name => document.getElementById('remoteSdrHealth' + name);
     async function request(path = '', options = {}) {
         const response = await fetch('/settings/remote-sdrs' + path, options);
         const data = await response.json();
-        if (!response.ok) throw new Error(data.message || 'Remote SDR settings unavailable');
+        if (!response.ok) throw new Error(data.message || 'Remote receiver settings unavailable');
         return data;
     }
     function error(message = '') { if (field('Error')) field('Error').textContent = message; }
     function reset() {
         field('Form').reset();
         field('Id').value = '';
-        field('Save').textContent = 'Add remote SDR';
+        typeChanged();
+        field('Save').textContent = 'Add receiver';
     }
     function render() {
         const list = field('List');
@@ -1730,7 +1733,7 @@ const RemoteSdrHealth = (() => {
         if (!entries.length) {
             const empty = document.createElement('p');
             empty.className = 'settings-label-desc';
-            empty.textContent = 'No remote SDRs saved.';
+            empty.textContent = 'No remote receivers saved.';
             list.append(empty);
         }
         for (const entry of entries) {
@@ -1745,14 +1748,14 @@ const RemoteSdrHealth = (() => {
             status.style.color = entry.state === 'online' ? 'var(--accent-green)' : 'var(--text-dim)';
             const label = {online: 'Online', offline: 'Offline', unknown: 'Not checked yet'}[entry.state] || 'Not checked yet';
             const lastSeen = entry.last_seen ? new Date(entry.last_seen).toLocaleString() : 'Never';
-            status.textContent = `${entry.host}:${entry.port} · ${label} · Last seen: ${lastSeen}`;
+            status.textContent = `${typeLabel(entry.type)} · ${entry.host}:${entry.port} · ${label} · Last seen: ${lastSeen}`;
             details.append(name, status);
             row.append(details);
             for (const [label, action] of [
                 ['Edit', () => {
                     field('Id').value = entry.id;
-                    for (const key of ['name', 'host', 'port']) field(key[0].toUpperCase() + key.slice(1)).value = entry[key];
-                    field('Save').textContent = 'Save remote SDR';
+                    for (const key of ['type', 'name', 'host', 'port']) field(key[0].toUpperCase() + key.slice(1)).value = entry[key];
+                    field('Save').textContent = 'Save receiver';
                     field('Name').focus();
                 }],
                 ['Remove', () => mutate('/' + entry.id, {method: 'DELETE'}, entry.id)]
@@ -1772,7 +1775,9 @@ const RemoteSdrHealth = (() => {
         if (!field('Panel')) return;
         clearTimeout(timer);
         try {
-            entries = (await request()).entries;
+            const data = await request();
+            entries = data.entries;
+            types = data.types || types;
             render();
             error();
         } catch (err) { error(err.message); }
@@ -1797,8 +1802,15 @@ const RemoteSdrHealth = (() => {
         return mutate(id ? '/' + id : '', {
             method: id ? 'PUT' : 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({name: field('Name').value, host: field('Host').value, port: field('Port').value})
+            body: JSON.stringify({type: field('Type').value, name: field('Name').value, host: field('Host').value, port: field('Port').value})
         });
     }
-    return {load, save, reset, stop: () => clearTimeout(timer)};
+    // Suggest the type's usual port unless the admin already typed a different one.
+    function typeChanged() {
+        const port = defaultPort(field('Type').value) ?? (field('Type').value === 'adsb_sbs' ? 30003 : null);
+        const typed = field('Port').value;
+        const known = [30003, ...types.map(t => t.port)].filter(Boolean).map(String);
+        if (port && (!typed || known.includes(typed))) field('Port').value = port;
+    }
+    return {load, save, reset, typeChanged, stop: () => clearTimeout(timer)};
 })();

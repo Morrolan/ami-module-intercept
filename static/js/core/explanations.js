@@ -2,10 +2,10 @@
 (function () {
   'use strict';
   const guide = /* catalogue */ {
-  "title-Remote SDR health": {
-    "term": "Remote SDR health",
-    "meaning": "Checks whether each saved remote host accepts a TCP connection on its configured port, about once a minute with a three-second deadline.",
-    "matters": "Shows Online, Offline or Not checked yet and the last successful connection without starting a receiver or sending alerts.",
+  "title-Remote receivers": {
+    "term": "Remote receivers",
+    "meaning": "The one shared list of remote receivers, managed by admins. Each has a type; ADS-B feeds appear in the ADS-B device menu for everyone. Each host and port is checked about once a minute with a three-second deadline.",
+    "matters": "Keeps remote receivers in one place and shows Online, Offline or Not checked yet and the last successful connection, without starting a receiver or sending alerts.",
     "notMeaning": "Online does not prove a receiver is decoding or sending data. A connection check can briefly occupy a single-client service such as rtl_tcp. Last seen resets when Intercept restarts or the entry is edited.",
     "category": "Guide"
   },
@@ -1213,11 +1213,11 @@
     "notMeaning": "A connection alone does not establish fix accuracy.",
     "category": "Guide"
   },
-  "title-Use remote dump1090": {
-    "term": "Use remote dump1090",
-    "meaning": "Uses a remote dump1090 receiver instead of starting the local one.",
-    "matters": "Allows this dashboard to use another receiver’s ADS-B data.",
-    "notMeaning": "Remote coverage does not describe reception at your own antenna.",
+  "title-Remote receiver health": {
+    "term": "Remote receiver health",
+    "meaning": "Whether the chosen remote ADS-B feed accepted a TCP connection at its last check, about once a minute.",
+    "matters": "Shows at a glance whether the shared receiver you picked is reachable before or while you track.",
+    "notMeaning": "Online does not prove the feed is sending aircraft. Remote coverage does not describe reception at your own antenna.",
     "category": "Guide"
   },
   "title-SDR device for ADS-B (1090 MHz)": {

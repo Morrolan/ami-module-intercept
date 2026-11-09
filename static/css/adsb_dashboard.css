@@ -2615,3 +2615,13 @@ html[data-theme="light"] .aircraft-item.selected { background: rgba(var(--accent
 .aircraft-item.stale {
     opacity: 0.55;
 }
+
+/* Health of the chosen shared remote feed; text carries the state, colour only reinforces it. */
+.remote-sbs-health {
+    font-size: 11px;
+    white-space: nowrap;
+    color: var(--text-dim);
+}
+.remote-sbs-health[data-state="online"] { color: var(--accent-green); }
+.remote-sbs-health[data-state="offline"],
+.remote-sbs-health[data-state="unlisted"] { color: var(--accent-orange); }

@@ -92,7 +92,28 @@ def test_account_sync_and_offline(browser, prefs_url):
         second.close()
 
 
-def test_remote_adsb_save_restores_in_fresh_browser(browser, prefs_url):
+@pytest.fixture
+def shared_feed(prefs_url):
+    """One admin-listed ADS-B feed in the real shared receiver list."""
+    from utils.remote_sdr_health import monitor
+
+    feed = monitor.save({'name': 'Roof Pi', 'host': '10.10.42.6', 'port': 30003, 'type': 'adsb_sbs'})
+    yield feed
+    try:
+        monitor.remove(feed['id'])
+    except KeyError:
+        pass
+
+
+def feed_option(page, feed):
+    value = 'remote-sbs:' + feed['id']
+    page.wait_for_function(
+        "value => Array.from(document.getElementById('adsbDeviceSelect').options).some(o => o.value === value)",
+        arg=value, timeout=5000)
+    return value
+
+
+def test_remote_adsb_choice_restores_in_fresh_browser(browser, prefs_url, shared_feed):
     contexts = [browser.new_context(), browser.new_context(viewport={"width": 390, "height": 844})]
     try:
         for context in contexts:
@@ -101,22 +122,21 @@ def test_remote_adsb_save_restores_in_fresh_browser(browser, prefs_url):
                 if (window.speechSynthesis) window.speechSynthesis.speak = () => {};""")
         page = sign_in(contexts[0], prefs_url)
         page.goto(prefs_url + '/adsb/dashboard', wait_until='domcontentloaded')
-        page.get_by_label('Remote', exact=True).check()
-        page.get_by_label('Remote ADS-B host', exact=True).fill('10.10.42.10')
-        page.get_by_label('Remote ADS-B port', exact=True).fill('30003')
-        page.get_by_role('button', name='Save remote ADS-B receiver').click()
-        page.wait_for_function("document.getElementById('remoteSbsSaveStatus').textContent === 'Saved to your account.'")
+        value = feed_option(page, shared_feed)
+        # A non-admin sees the shared feed, with its health, and nowhere to type a host.
+        assert page.locator('#saveRemoteSbs').count() == 0
+        assert 'Roof Pi' in page.locator(f'#adsbDeviceSelect option[value="{value}"]').inner_text()
+        with page.expect_response(lambda r: r.url.endswith('/api/me/prefs') and r.request.method == 'PUT') as saved:
+            page.select_option('#adsbDeviceSelect', value)
+        assert saved.value.ok
+        assert page.locator('#remoteSbsHealth').is_visible()
         fresh = sign_in(contexts[1], prefs_url)
         fresh.goto(prefs_url + '/adsb/dashboard?ami=1', wait_until='domcontentloaded')
-        fresh.wait_for_function("document.getElementById('useRemoteDump1090').checked")
-        assert fresh.get_by_label('Remote ADS-B host', exact=True).input_value() == '10.10.42.10'
-        assert fresh.get_by_label('Remote ADS-B port', exact=True).input_value() == '30003'
-        button = fresh.get_by_role('button', name='Save remote ADS-B receiver')
-        button.scroll_into_view_if_needed()
-        assert button.is_visible()
+        fresh.wait_for_function("value => document.getElementById('adsbDeviceSelect').value === value", arg=value)
+        assert fresh.evaluate("document.getElementById('remoteSbsHost').value") == '10.10.42.6'
         contexts[1].route('**/api/me/prefs', lambda route: route.fulfill(status=503, body='unavailable'))
-        button.click()
-        fresh.wait_for_function("document.getElementById('remoteSbsSaveStatus').textContent.includes('Could not save')")
+        fresh.select_option('#adsbDeviceSelect', index=0)
+        fresh.wait_for_function("document.getElementById('remoteSbsSaveStatus').textContent.includes('Could not remember')")
     finally:
         for context in contexts:
             context.close()
@@ -126,7 +146,7 @@ def test_remote_adsb_save_restores_in_fresh_browser(browser, prefs_url):
     ({"width": 1600, "height": 1000}, [{"index": 0, "sdr_type": "rtlsdr", "name": "Local RTL"}], "manual"),
     ({"width": 390, "height": 844}, [], "auto"),
 ])
-def test_saved_remote_is_selectable_and_start_uses_it(browser, prefs_url, viewport, devices, start_mode):
+def test_saved_remote_is_selectable_and_start_uses_it(browser, prefs_url, viewport, devices, start_mode, shared_feed):
     import json
 
     context = browser.new_context(viewport=viewport)
@@ -149,25 +169,22 @@ def test_saved_remote_is_selectable_and_start_uses_it(browser, prefs_url, viewpo
         context.route('**/adsb/stream', lambda r: r.fulfill(content_type='text/event-stream', body=''))
         page = sign_in(context, prefs_url)
         page.goto(prefs_url + '/adsb/dashboard', wait_until='domcontentloaded')
-        page.get_by_label('Remote', exact=True).check()
-        page.get_by_label('Remote ADS-B host', exact=True).fill('10.10.42.6')
-        page.get_by_label('Remote ADS-B port', exact=True).fill('30003')
-        page.get_by_role('button', name='Save remote ADS-B receiver').click()
-        page.wait_for_function("document.getElementById('remoteSbsSaveStatus').textContent === 'Saved to your account.'")
-        page.wait_for_function("Array.from(document.getElementById('adsbDeviceSelect').options).some(o => o.value === 'remote-sbs')", timeout=2000)
-        assert page.locator('#adsbDeviceSelect').input_value() == 'remote-sbs'
+        remote = feed_option(page, shared_feed)
+        page.select_option('#adsbDeviceSelect', remote)
+        assert page.locator('#adsbDeviceSelect').input_value() == remote
         page.evaluate('() => initDeviceSelectors(true)')
-        assert page.locator('#adsbDeviceSelect').input_value() == 'remote-sbs'
-        page.select_option('#adsbDeviceSelect', 'rtlsdr:0')
-        assert not page.get_by_label('Remote', exact=True).is_checked()
-        page.select_option('#adsbDeviceSelect', 'remote-sbs')
-        assert page.get_by_label('Remote', exact=True).is_checked()
+        assert page.locator('#adsbDeviceSelect').input_value() == remote
+        if devices:
+            page.select_option('#adsbDeviceSelect', 'rtlsdr:0')
+            assert not page.evaluate("document.getElementById('useRemoteDump1090').checked")
+            page.select_option('#adsbDeviceSelect', remote)
+        assert page.evaluate("document.getElementById('useRemoteDump1090').checked")
         page.evaluate("() => { adsbCurrentAgent = '7'; updateSourceIndicator(); }")
-        assert page.locator('#adsbDeviceSelect option[value="remote-sbs"]').count() == 0
+        assert page.locator(f'#adsbDeviceSelect option[value="{remote}"]').count() == 0
         assert not page.locator('#adsbGainInput').is_disabled()
         assert not page.locator('#adsbBiasT').is_disabled()
         page.evaluate("() => { adsbCurrentAgent = 'local'; updateSourceIndicator(); }")
-        assert page.locator('#adsbDeviceSelect').input_value() == 'remote-sbs'
+        assert page.locator('#adsbDeviceSelect').input_value() == remote
         if start_mode == 'auto':
             page.evaluate('() => tryAutoStartLocal()')
         else:
@@ -176,18 +193,18 @@ def test_saved_remote_is_selectable_and_start_uses_it(browser, prefs_url, viewpo
         assert calls == [{"remote_sbs_host": "10.10.42.6", "remote_sbs_port": 30003}]
         assert '10.10.42.6' in page.locator('#stripSource').inner_text()
         page.reload(wait_until='domcontentloaded')
-        page.wait_for_function("document.getElementById('adsbDeviceSelect').value === 'remote-sbs'", timeout=5000)
+        page.wait_for_function("value => document.getElementById('adsbDeviceSelect').value === value", arg=remote, timeout=5000)
         assert '10.10.42.6' in page.locator('#stripSource').inner_text()
         assert page.locator('#adsbDeviceSelect').is_disabled()
         page.evaluate("() => { const select = document.getElementById('adsbDeviceSelect'); select.value = 'rtlsdr:0'; select.dispatchEvent(new Event('change')); }")
-        assert page.get_by_label('Remote', exact=True).is_checked()
-        assert page.locator('#adsbDeviceSelect').input_value() == 'remote-sbs'
+        assert page.evaluate("document.getElementById('useRemoteDump1090').checked")
+        assert page.locator('#adsbDeviceSelect').input_value() == remote
         assert '10.10.42.6' in page.locator('#stripSource').inner_text()
     finally:
         context.close()
 
 
-def test_real_history_disabled_session_restores_remote_over_saved_local(browser, prefs_url, monkeypatch):
+def test_real_history_disabled_session_restores_remote_over_saved_local(browser, prefs_url, monkeypatch, shared_feed):
     import routes.adsb as adsb
 
     monkeypatch.setattr(adsb, 'ADSB_HISTORY_ENABLED', False)
@@ -205,14 +222,15 @@ def test_real_history_disabled_session_restores_remote_over_saved_local(browser,
         # Use the real start/status routes: older tests supplied invented complete metadata.
         started = context.request.post(prefs_url + '/adsb/start', data={'remote_sbs_host': '10.10.42.6', 'remote_sbs_port': 30003})
         assert started.ok
+        remote = 'remote-sbs:' + shared_feed['id']
         page.goto(prefs_url + '/adsb/dashboard?ami=1', wait_until='domcontentloaded')
-        page.wait_for_function("document.querySelector('#adsbDeviceSelect').value === 'remote-sbs'")
+        page.wait_for_function("value => document.querySelector('#adsbDeviceSelect').value === value", arg=remote)
         assert '10.10.42.6:30003' in page.locator('#stripSource').inner_text()
         assert page.locator('#adsbDeviceSelect').is_disabled()
         page.reload(wait_until='domcontentloaded')
-        page.wait_for_function("document.querySelector('#adsbDeviceSelect').value === 'remote-sbs'")
+        page.wait_for_function("value => document.querySelector('#adsbDeviceSelect').value === value", arg=remote)
         page.evaluate('() => initDeviceSelectors(true)')
-        assert page.locator('#adsbDeviceSelect').input_value() == 'remote-sbs'
+        assert page.locator('#adsbDeviceSelect').input_value() == remote
     finally:
         context.request.post(prefs_url + '/adsb/stop', data={})
         context.close()
