@@ -565,14 +565,23 @@
             const intervals = [maxRange / 4, maxRange / 2, maxRange * 3 / 4, maxRange];
 
             intervals.forEach(nm => {
+                // Light dashed ring over a dark halo, so it reads on pale street maps
+                // as well as on dark tiles and satellite imagery
+                rings.push(L.circle([observerLocation.lat, observerLocation.lon], {
+                    radius: nm * nmToMeters,
+                    fill: false,
+                    color: '#000000',
+                    opacity: 0.45,
+                    weight: 4,
+                    interactive: false
+                }));
                 const circle = L.circle([observerLocation.lat, observerLocation.lon], {
                     radius: nm * nmToMeters,
                     fill: false,
-                    // Strong enough to read over satellite imagery (it was 1 px at 30%)
-                    color: '#7cc4ff',
-                    opacity: 0.75,
-                    weight: 1.5,
-                    dashArray: '6 5',
+                    color: '#8fd3ff',
+                    opacity: 0.95,
+                    weight: 2,
+                    dashArray: '8 6',
                     interactive: false
                 });
                 rings.push(circle);
