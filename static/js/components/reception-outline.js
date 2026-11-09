@@ -99,16 +99,27 @@ const ReceptionOutline = (function () {
             const points = bins.filter(Boolean);
             if (!visible || points.length < 3) return;
             const furthest = Math.max(...points.map((p) => p[2]));
-            layer = L.polygon(points.map((p) => [p[0], p[1]]), {
+            const latLngs = points.map((p) => [p[0], p[1]]);
+            // Dashed line over a dark halo, like the range rings, so it reads on
+            // OpenStreetMap Dimmed and pale street maps as well as dark tiles
+            const halo = L.polygon(latLngs, {
+                color: '#000000',
+                weight: 4,
+                opacity: 0.45,
+                fill: false,
+                interactive: false,
+            });
+            const outline = L.polygon(latLngs, {
                 color: opts.color,
-                weight: 1.5,
-                opacity: 0.8,
+                weight: 2,
+                opacity: 0.95,
                 dashArray: '6 4',
                 fillColor: opts.color,
                 fillOpacity: 0.06,
                 interactive: true,
             }).bindTooltip(`Reception: the furthest contact in each direction · up to ${Math.round(furthest)} km` +
                 ` · ${points.length} of ${BINS} directions heard`, { sticky: true });
+            layer = L.layerGroup([halo, outline]);
             layer.addTo(map);
         }
 
