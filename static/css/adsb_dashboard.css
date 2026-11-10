@@ -1395,6 +1395,31 @@ body {
     font-size: 9px !important;
 }
 
+/* Hover tooltips (aircraft, reception outline): themed glass instead of
+   Leaflet's white default, following the AMI theme's tokens (light and dark) */
+.leaflet-tooltip {
+    background: var(--surface-glass, var(--bg-elevated));
+    border: 1px solid var(--border-light, var(--border-color));
+    border-radius: var(--radius-sm, 2px);
+    color: var(--text-primary);
+    font-family: var(--font-data, var(--font-mono));
+    font-size: 11px;
+    line-height: 1.45;
+    padding: 4px 8px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+.leaflet-tooltip.aircraft-tooltip {
+    color: var(--accent-cyan);
+}
+
+.leaflet-tooltip-top::before { border-top-color: var(--border-light, var(--border-color)); }
+.leaflet-tooltip-bottom::before { border-bottom-color: var(--border-light, var(--border-color)); }
+.leaflet-tooltip-left::before { border-left-color: var(--border-light, var(--border-color)); }
+.leaflet-tooltip-right::before { border-right-color: var(--border-light, var(--border-color)); }
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
     width: 6px;
