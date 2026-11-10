@@ -800,6 +800,18 @@ body {
     bottom: 0;
 }
 
+/* Full screen map: native fullscreen, or filling the window where that's unavailable */
+.display-container:fullscreen {
+    background: var(--bg-primary, #020408);
+}
+
+.display-container.map-fullscreen {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: var(--bg-primary, #020408);
+}
+
 #radarMap {
     position: relative;
     width: 100%;
