@@ -44,6 +44,13 @@
     "notMeaning": "This is receive-only and reception depends on your receiver and antenna.",
     "category": "Guide"
   },
+  "title-More Teesside frequencies: other ATC, Draken Europe and distress": {
+    "term": "Other frequencies",
+    "meaning": "Picks another Teesside channel to listen to: Director, ATIS and Fire, Draken Europe's operations and air-to-air channels, or 121.5 MHz distress. Then Listen tunes your selected airband receiver to its AM carrier.",
+    "matters": "Draken's frequencies come from spotter guides, not the official publication, so they may change without notice.",
+    "notMeaning": "This is receive-only. Choosing a frequency doesn't start listening, and quiet channels such as Fire and 121.5 MHz are silent most of the time.",
+    "category": "Guide"
+  },
   "title-Aircraft route origin": {
     "term": "Origin",
     "meaning": "Departure airport from a public callsign-route lookup, when available.",
