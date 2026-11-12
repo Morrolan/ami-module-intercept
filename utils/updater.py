@@ -35,7 +35,7 @@ DEFAULT_CHECK_INTERVAL = 6 * 60 * 60
 
 def _get_github_repo() -> str:
     """Get the configured GitHub repository."""
-    return getattr(config, "GITHUB_REPO", "smittix/intercept")
+    return getattr(config, "GITHUB_REPO", "Morrolan/ami-module-intercept")
 
 
 def _get_check_interval() -> int:
@@ -46,7 +46,7 @@ def _get_check_interval() -> int:
 
 def _is_update_check_enabled() -> bool:
     """Check if update checking is enabled."""
-    return getattr(config, "UPDATE_CHECK_ENABLED", True)
+    return getattr(config, "UPDATE_CHECK_ENABLED", False)
 
 
 def _compare_versions(current: str, latest: str) -> int:
@@ -279,6 +279,9 @@ def get_update_status() -> dict[str, Any]:
         Dict with cached update status
     """
     current_version = config.VERSION
+    # Off: say so, rather than a "latest" cached while it was on (e.g. an upstream release)
+    if not _is_update_check_enabled():
+        return {"success": True, "checked": False, "disabled": True, "current_version": current_version}
     cached_version = get_setting(CACHE_KEY_LATEST_VERSION)
     last_check = get_setting(CACHE_KEY_LAST_CHECK)
     dismissed = get_setting(CACHE_KEY_DISMISSED_VERSION)
