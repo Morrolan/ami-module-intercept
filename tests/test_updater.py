@@ -79,3 +79,24 @@ def test_stale_cached_latest_is_not_shown(github):
     result = updater.check_for_updates()
     assert result["latest_version"] == "2.33.75"
     assert result["cached"] is False
+
+
+def test_off_by_default_and_points_at_the_fork(monkeypatch):
+    # This fork deploys image tags, not GitHub releases, so upstream's releases mustn't be offered
+    monkeypatch.delattr(updater.config, "UPDATE_CHECK_ENABLED", raising=False)
+    monkeypatch.delattr(updater.config, "GITHUB_REPO", raising=False)
+    assert updater._is_update_check_enabled() is False
+    assert updater._get_github_repo() == "Morrolan/ami-module-intercept"
+
+
+def test_off_hides_a_cached_upstream_release(github, monkeypatch):
+    # A newer release cached while checking was on (the Pi's database) is not shown once it's off
+    github["settings"].update(
+        {updater.CACHE_KEY_LATEST_VERSION: "2.40.0", updater.CACHE_KEY_LAST_CHECK: str(time.time())}
+    )
+    assert updater.get_update_status()["update_available"] is True
+    monkeypatch.setattr(updater.config, "UPDATE_CHECK_ENABLED", False, raising=False)
+    status = updater.get_update_status()
+    assert status["disabled"] is True and status.get("update_available") is not True
+    check = updater.check_for_updates(force=True)
+    assert check["disabled"] is True and check["update_available"] is False

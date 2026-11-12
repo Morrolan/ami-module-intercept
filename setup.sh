@@ -2556,7 +2556,7 @@ do_env_config() {
          "INTERCEPT_RADIOSONDE_GAIN|SDR gain|40.0" \
          "INTERCEPT_RADIOSONDE_UDP_PORT|UDP port|55673" ;;
     7) env_edit_category "Logging & Updates" \
-         "INTERCEPT_UPDATE_CHECK_ENABLED|Enable update checks (true/false)|true" \
+         "INTERCEPT_UPDATE_CHECK_ENABLED|Enable update checks (true/false)|false" \
          "INTERCEPT_UPDATE_CHECK_INTERVAL_HOURS|Check interval (hours)|6" ;;
     0|"") return ;;
     *) warn "Invalid selection" ;;

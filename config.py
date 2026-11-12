@@ -1013,9 +1013,11 @@ RADIOSONDE_FREQ_MAX = _get_env_float("RADIOSONDE_FREQ_MAX", 406.0)
 RADIOSONDE_DEFAULT_GAIN = _get_env_float("RADIOSONDE_GAIN", 40.0)
 RADIOSONDE_UDP_PORT = _get_env_int("RADIOSONDE_UDP_PORT", 55673)
 
-# Update checking
-GITHUB_REPO = _get_env("GITHUB_REPO", "smittix/intercept")
-UPDATE_CHECK_ENABLED = _get_env_bool("UPDATE_CHECK_ENABLED", True)
+# Update checking. Off in this fork: upstream (smittix/intercept) releases don't apply to it, and it
+# ships as image tags deployed in Portainer, not GitHub releases. Set INTERCEPT_UPDATE_CHECK_ENABLED=true
+# to turn it back on; it then checks the fork, which has no releases.
+GITHUB_REPO = _get_env("GITHUB_REPO", "Morrolan/ami-module-intercept")
+UPDATE_CHECK_ENABLED = _get_env_bool("UPDATE_CHECK_ENABLED", False)
 UPDATE_CHECK_INTERVAL_HOURS = _get_env_int("UPDATE_CHECK_INTERVAL_HOURS", 6)
 
 # Activity feed observations: how long they are kept, and a ceiling on rows
