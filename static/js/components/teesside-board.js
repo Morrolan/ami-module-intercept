@@ -116,13 +116,12 @@
         }
     }
 
-    async function listen(kind) {
+    async function listen(frequency) {
         if (typeof adsbCurrentAgent !== 'undefined' && adsbCurrentAgent !== 'local') {
             el('teessideRadioStatus').textContent = 'Select a receiver on this server in Airband to listen.';
             return;
         }
-        const frequency = {tower: 119.8, approach: 118.85}[kind];
-        if (!frequency) return;
+        if (!(frequency > 0)) return;
         if (isAirbandPlaying) {
             await stopAirband();
             if (isAirbandPlaying) { el('teessideRadioStatus').textContent = 'Could not stop the current audio receiver.'; return; }
@@ -152,7 +151,13 @@
         el('teessideDate').addEventListener('change', render);
         el('teessideRefresh').addEventListener('click', load);
         dialog.querySelectorAll('[data-board]').forEach(button => button.addEventListener('click', () => { mode = button.dataset.board; render(); }));
-        dialog.querySelectorAll('[data-radio]').forEach(button => button.addEventListener('click', () => listen(button.dataset.radio)));
+        dialog.querySelectorAll('[data-radio]').forEach(button => button.addEventListener('click', () => listen({tower: 119.8, approach: 118.85}[button.dataset.radio])));
+        const other = el('teessideOther'), otherListen = el('teessideOtherListen');
+        other.addEventListener('change', () => {
+            otherListen.disabled = !other.value;
+            otherListen.textContent = other.value ? `Listen · ${other.selectedOptions[0].text}` : 'Listen';
+        });
+        otherListen.addEventListener('click', () => listen(parseFloat(other.value)));
         dialog.addEventListener('click', event => {
             const box = dialog.getBoundingClientRect();
             if (event.target === dialog && (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom)) dialog.close();

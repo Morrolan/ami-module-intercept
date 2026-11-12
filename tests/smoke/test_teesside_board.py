@@ -101,3 +101,21 @@ def test_airport_stale_failure_and_upstream_text_safety(page):
     page.wait_for_function("document.querySelector('#teessideFlights').textContent.includes('unavailable')")
     assert 'No published flights' not in page.locator('#teessideFlights').inner_text()
     assert not page.errors, page.errors
+
+
+@pytest.mark.parametrize('label,frequency', [
+    ('Director · 128.850', 128.85), ('Ops Teesside · 122.350', 122.35),
+    ('Air-to-air UHF · 267.750', 267.75), ('Distress / guard · 121.500', 121.5),
+])
+def test_other_frequencies_list_tunes_carrier_after_listen(page, label, frequency):
+    page.route('**/adsb/teesside', lambda r: r.fulfill(json=DATA))
+    page.evaluate("() => { window.airportTunes=[];window.startAirband=async()=>airportTunes.push(getAirbandFrequency()); }")
+    page.get_by_role('button', name='Teesside airport board').click(timeout=3000)
+    listen = page.locator('#teessideOtherListen')
+    assert listen.is_disabled()
+    page.get_by_label('Other Teesside frequencies').select_option(label=label)
+    assert page.evaluate('airportTunes') == []  # Choosing alone never starts audio.
+    assert listen.inner_text() == f'Listen · {label}'
+    listen.click()
+    assert page.evaluate('airportTunes') == [frequency]
+    assert not page.errors, page.errors

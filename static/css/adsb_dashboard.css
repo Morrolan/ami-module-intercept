@@ -2559,6 +2559,7 @@ html[data-ui-tier="lean"] .radar-bg {
 .teesside-board { width: min(900px, calc(100vw - 32px)); }
 .teesside-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0; }
 .teesside-actions label { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.teesside-actions select { font-size: 10px; padding: 5px 6px; max-width: 100%; }
 .teesside-actions [aria-pressed="true"] { border-color: var(--accent-cyan); color: var(--accent-cyan); }
 .teesside-board li.teesside-flight { display: grid; grid-template-columns: 80px 130px minmax(130px, 1fr) minmax(100px, 1fr); gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--border-color); overflow-wrap: anywhere; }
 .teesside-note { grid-column: 1 / -1; color: var(--text-secondary); }
