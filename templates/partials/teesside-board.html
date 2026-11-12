@@ -7,6 +7,32 @@
     <div class="teesside-actions">
         <button type="button" class="strip-btn" data-radio="tower" data-explain-text="Listen to Teesside Tower">Listen to Tower · 119.800 MHz</button>
         <button type="button" class="strip-btn" data-radio="approach" data-explain-text="Listen to Teesside Approach">Listen to Approach · 118.850 MHz</button>
+        <!-- Carrier frequencies (what the receiver tunes), all AM. Draken and "Willis" are from spotter guides, not the AIP. -->
+        <select id="teessideOther" aria-label="Other Teesside frequencies" data-explain-text="More Teesside frequencies: other ATC, Draken Europe and distress">
+            <option value="">Other…</option>
+            <optgroup label="Teesside ATC">
+                <option value="128.85">Director · 128.850</option>
+                <option value="132.375">ATIS · 132.375</option>
+                <option value="121.6">Fire (emergencies only) · 121.600</option>
+            </optgroup>
+            <optgroup label="Draken Europe">
+                <option value="122.35">Ops Teesside · 122.350</option>
+                <option value="122.65">Draken · 122.650</option>
+                <option value="137.15">Air-to-air · 137.150</option>
+                <option value="137.275">Air-to-air · 137.275</option>
+                <option value="137.4">Air-to-air · 137.400</option>
+                <option value="137.625">Air-to-air · 137.625</option>
+                <option value="142.575">Air-to-air · 142.575</option>
+                <option value="142.65">Air-to-air · 142.650</option>
+                <option value="142.75">Air-to-air · 142.750</option>
+                <option value="267.75">Air-to-air UHF · 267.750</option>
+            </optgroup>
+            <optgroup label="Other">
+                <option value="131.7583">Willis · 131.758</option>
+                <option value="121.5">Distress / guard · 121.500</option>
+            </optgroup>
+        </select>
+        <button type="button" class="strip-btn" id="teessideOtherListen" disabled>Listen</button>
     </div>
     <p id="teessideRadioStatus" role="status"></p>
     <section aria-labelledby="teessideNextTitle">
