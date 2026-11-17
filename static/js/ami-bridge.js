@@ -68,9 +68,28 @@
       }
     }
   });
+  // AMI owns the theme while embedded. It is applied for this page only: the
+  // standalone choice in localStorage ('intercept-theme') is left untouched and
+  // nothing is sent back. Page start-up re-applies the local choice
+  // (loadTheme on DOMContentLoaded), so AMI's theme is re-asserted after it.
+  let amiTheme = null;
+  const applyTheme = () => {
+    if (!amiTheme) return;
+    document.documentElement.setAttribute('data-theme', amiTheme);
+    const btn = document.getElementById('themeToggle');
+    if (btn) {
+      const icons = window.Icons;
+      btn.innerHTML = amiTheme === 'light' ? (icons ? icons.moon() : 'Dark') : (icons ? icons.sun() : 'Light');
+    }
+  };
+  document.addEventListener('DOMContentLoaded', applyTheme, { once: true });
+  window.addEventListener('load', applyTheme, { once: true });
   window.addEventListener('message', e => {
     if (e.origin !== origin || e.source !== window.parent || !e.data || typeof e.data !== 'object') return;
-    if (e.data.type === 'ami-settings') autoplay = e.data.autoplay === true;
+    if (e.data.type === 'ami-theme') {
+      if (e.data.theme === 'light' || e.data.theme === 'dark') { amiTheme = e.data.theme; applyTheme(); }
+    }
+    else if (e.data.type === 'ami-settings') autoplay = e.data.autoplay === true;
     else if (e.data.type === 'ami-speech' && e.data.state === 'idle') finish(e.data.id);
     else if (e.data.type === 'ami-focus' || e.data.type === 'ami.focus') document.querySelector('main, .main-content, .dashboard-container')?.focus();
   });
