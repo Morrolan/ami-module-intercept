@@ -17,8 +17,19 @@ def _airport(value):
     iata, icao = value.get('iata_code'), value.get('icao_code')
     if not isinstance(icao, str) or not re.fullmatch(r'[A-Z0-9]{4}', icao):
         return None
-    return {'iata': iata if isinstance(iata, str) and re.fullmatch(r'[A-Z0-9]{3}', iata) else '',
-            'icao': icao, 'name': str(value.get('name') or '')[:160]}
+    country_code = value.get('country_iso_name')
+    airport = {'iata': iata if isinstance(iata, str) and re.fullmatch(r'[A-Z0-9]{3}', iata) else '',
+               'icao': icao, 'name': str(value.get('name') or '')[:160],
+               'municipality': str(value.get('municipality') or '')[:80],
+               'country': str(value.get('country_name') or '')[:80],
+               'country_code': country_code if isinstance(country_code, str)
+               and re.fullmatch(r'[A-Z]{2}', country_code) else ''}
+    for key, field, low, high in (('elevation_ft', 'elevation', -2000, 30000),
+                                  ('lat', 'latitude', -90, 90), ('lon', 'longitude', -180, 180)):
+        number = value.get(field)
+        valid = isinstance(number, (int, float)) and not isinstance(number, bool) and low <= number <= high
+        airport[key] = number if valid else None
+    return airport
 
 
 class RouteCache:

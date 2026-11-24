@@ -1,0 +1,21 @@
+<dialog id="airportInfoDialog" class="aircraft-key airport-info" aria-labelledby="airportInfoTitle">
+    <div class="aircraft-key-header">
+        <h2 id="airportInfoTitle">Airport</h2>
+        <button type="button" class="strip-btn" id="airportInfoClose" aria-label="Close airport details" autofocus>Close ×</button>
+    </div>
+    <p id="airportInfoCodes" class="airport-info-codes"></p>
+    <p id="airportInfoStatus" role="status" aria-live="polite"></p>
+    <dl id="airportInfoFacts" class="airport-info-facts"></dl>
+    <section id="airportInfoRunwaysSection" aria-labelledby="airportInfoRunwaysTitle" hidden>
+        <h3 id="airportInfoRunwaysTitle">Runways</h3>
+        <ul id="airportInfoRunways" class="airport-info-list"></ul>
+    </section>
+    <section id="airportInfoFreqSection" aria-labelledby="airportInfoFreqTitle" hidden>
+        <h3 id="airportInfoFreqTitle">Air traffic control</h3>
+        <ul id="airportInfoFreqs" class="airport-info-list"></ul>
+        <p>Published frequencies. Listen tunes your local airband receiver; a published 8.33 kHz channel name can differ slightly from the carrier.</p>
+        <p id="airportInfoRadioStatus" role="status"></p>
+    </section>
+    <p id="airportInfoLinks" class="airport-info-links"></p>
+    <p class="airport-info-source">Airport reference data from <a href="https://ourairports.com/" target="_blank" rel="noopener">OurAirports</a> (public domain), bundled with Intercept and may be out of date. The route itself is a callsign lookup and may differ from this flight.</p>
+</dialog>

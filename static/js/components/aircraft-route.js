@@ -7,9 +7,18 @@
         const key = normal(callsign);
         function paint(data) {
             if (selectedIcao !== icao || normal(aircraft[icao]?.callsign) !== key) return;
-            for (const [id, airport] of [['selectedOrigin', data.origin], ['selectedDestination', data.destination]]) {
+            for (const [id, airport, role] of [['selectedOrigin', data.origin, 'Origin'], ['selectedDestination', data.destination, 'Destination']]) {
                 const target = document.getElementById(id);
-                if (target) target.textContent = airport ? `${airport.iata || airport.icao} · ${airport.name}` : 'Unknown';
+                if (!target) continue;
+                if (!airport) { target.textContent = 'Unknown'; continue; }
+                // A button opens the airport's details (airport-info.js); text only, as names are external.
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'airport-link';
+                button.textContent = `${airport.iata || airport.icao} · ${airport.name}`;
+                button.setAttribute('aria-haspopup', 'dialog');
+                button.addEventListener('click', () => window.AirportInfo?.show(airport, `${role} of ${key}`));
+                target.replaceChildren(button);
             }
             const source = document.getElementById('selectedRouteSource');
             if (source) source.textContent = data.available ? 'Callsign route · adsbdb · may differ from this flight' : data.message;

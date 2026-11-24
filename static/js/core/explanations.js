@@ -53,14 +53,14 @@
   },
   "title-Aircraft route origin": {
     "term": "Origin",
-    "meaning": "Departure airport from a public callsign-route lookup, when available.",
+    "meaning": "Departure airport from a public callsign-route lookup, when available. Click the airport for its details: size, location, runways and published frequencies.",
     "matters": "Provides context for the selected aircraft without changing its received position.",
     "notMeaning": "ADS-B does not transmit this field; a callsign route can be unavailable or differ from the current flight.",
     "category": "Guide"
   },
   "title-Aircraft route destination": {
     "term": "Destination",
-    "meaning": "Arrival airport from a public callsign-route lookup, when available.",
+    "meaning": "Arrival airport from a public callsign-route lookup, when available. Click the airport for its details: size, location, runways and published frequencies.",
     "matters": "Helps identify where the selected flight may be heading.",
     "notMeaning": "This is not a verified flight plan, arrival clearance or a route inferred from the aircraft's heading.",
     "category": "Guide"

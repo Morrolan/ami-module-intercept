@@ -2565,6 +2565,25 @@ html[data-ui-tier="lean"] .radar-bg {
 .teesside-note { grid-column: 1 / -1; color: var(--text-secondary); }
 .aircraft-route-value { overflow-wrap: anywhere; white-space: normal; }
 .aircraft-route-source { grid-column: 1 / -1; font-size: 10px; line-height: 1.5; color: var(--text-secondary); overflow-wrap: anywhere; }
+/* Origin and destination open the airport details dialog: a real button that reads as a link. */
+.airport-link { display: block; width: 100%; padding: 0; border: 0; background: none; color: inherit; font: inherit;
+    text-align: left; white-space: normal; overflow-wrap: anywhere; cursor: pointer;
+    text-decoration: underline dotted; text-underline-offset: 3px; }
+.airport-link:hover { color: var(--accent-cyan); }
+.airport-link:focus-visible { outline: 2px solid var(--accent-cyan); outline-offset: 2px; }
+.airport-info [hidden] { display: none !important; }
+.airport-info-codes { margin: 4px 0 0; color: var(--accent-cyan); }
+.airport-info-facts { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 12px 0; }
+.airport-info-facts dt { color: var(--text-secondary); }
+.airport-info-facts dd { margin: 0; overflow-wrap: anywhere; }
+.airport-info .airport-info-list li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 12px;
+    min-height: 0; padding: 6px 0; border-bottom: 1px solid var(--border-color); overflow-wrap: anywhere; }
+.airport-info .airport-info-list .strip-btn { font-size: 10px; padding: 4px 10px; }
+.airport-info-source { font-size: 10px; }
+@media (max-width: 600px) {
+    .airport-info-facts { grid-template-columns: 1fr; gap: 0; }
+    .airport-info-facts dd { margin-bottom: 6px; }
+}
 .teesside-board [hidden] { display: none !important; }
 @media (max-width: 600px) {
     .teesside-board li.teesside-flight { grid-template-columns: 1fr 1fr; }
