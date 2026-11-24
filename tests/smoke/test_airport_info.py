@@ -100,3 +100,19 @@ def test_slow_airport_lookup_cannot_overwrite_newer_airport(page):
     pending[0].fulfill(json={"available": True, "icao": "EHAM", "name": "Wrong airport", "type": "large"})
     page.wait_for_timeout(150)
     assert page.locator("#airportInfoTitle").text_content() == "Teesside International Airport"
+
+
+def test_listen_is_manual_and_tunes_the_airport_frequency(page):
+    page.evaluate(
+        "() => { window.airportTunes=[];window.startAirband=async()=>airportTunes.push(getAirbandFrequency()); }"
+    )
+    open_route(page, route())
+    page.locator("#selectedDestination").get_by_role("button").click()
+    dialog = page.locator("#airportInfoDialog")
+    listen = dialog.get_by_role("button", name="Listen to TWR · 119.800 MHz")
+    listen.wait_for()
+    assert page.evaluate("airportTunes") == []
+    listen.click()
+    page.wait_for_function("airportTunes.length === 1")
+    assert page.evaluate("airportTunes") == [119.8]
+    assert not dialog.is_visible()
