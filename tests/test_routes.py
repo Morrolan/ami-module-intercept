@@ -1,7 +1,7 @@
 """Tests for Flask routes and API endpoints."""
 
 import json
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -70,6 +70,41 @@ class TestHealthEndpoint:
             assert client.get("/health").get_json()["processes"]["meshtastic"] is False
         with patch("utils.meshtastic._client", SimpleNamespace(is_running=True)):
             assert client.get("/health").get_json()["processes"]["meshtastic"] is True
+
+    @pytest.mark.parametrize("source", ["remote", "external"])
+    def test_health_reports_adsb_read_from_a_feed(self, client, source):
+        """A remote receiver or an already-running dump1090 lights Aircraft without a process of our own."""
+        import app as app_module
+        from routes import adsb
+
+        session = {"sdr_type": source, "remote_host": "10.0.0.9", "remote_port": 30003}
+        with patch.object(app_module, "adsb_process", None), patch.object(adsb, "_runtime_session", session):
+            with patch.object(adsb, "adsb_using_service", True):
+                data = client.get("/health").get_json()
+                assert data["processes"]["adsb"] is True
+                assert data["sources"] == {"adsb": source}
+                assert "10.0.0.9" not in json.dumps(data)  # /health is public: no receiver addresses
+            with patch.object(adsb, "adsb_using_service", False):
+                data = client.get("/health").get_json()
+                assert data["processes"]["adsb"] is False
+                assert data["sources"] == {}
+
+    def test_health_reports_a_stopped_local_dump1090_as_not_running(self, client):
+        """Our own dump1090 exiting still reads as stopped, even while the SBS reader flag is set."""
+        import app as app_module
+        from routes import adsb
+
+        dead = MagicMock()
+        dead.poll.return_value = 1
+        with patch.object(app_module, "adsb_process", dead), patch.object(adsb, "adsb_using_service", True), \
+                patch.object(adsb, "_runtime_session", {"sdr_type": "rtlsdr"}):
+            assert client.get("/health").get_json()["processes"]["adsb"] is False
+        dead.poll.return_value = None
+        with patch.object(app_module, "adsb_process", dead), patch.object(adsb, "adsb_using_service", True), \
+                patch.object(adsb, "_runtime_session", {"sdr_type": "rtlsdr"}):
+            data = client.get("/health").get_json()
+            assert data["processes"]["adsb"] is True
+            assert data["sources"] == {}
 
 
 class TestDevicesEndpoint:
