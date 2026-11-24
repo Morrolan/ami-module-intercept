@@ -33,9 +33,9 @@ def _tile(page, selector):
 
 def test_tiles_light_for_feeds_and_every_sdr(page, base_url):
     health = _health(
-        {"adsb": True, "acars": True, "ais": False, "dsc": True, "pager": False},
+        {"adsb": True, "acars": True, "ais": False, "dsc": True, "pager": False, "weathersat": True},
         sources={"adsb": "remote"},
-        claims={"rtlsdr:1": "acars", "rtlsdr:0": "dsc", "rtlsdr:2": "waterfall"},
+        claims={"rtlsdr:1": "acars", "rtlsdr:0": "dsc", "rtlsdr:2": "waterfall", "rtlsdr:3": "weather_sat"},
     )
     page.route("**/health", lambda route: route.fulfill(json=health))
     page.goto(base_url + "/", wait_until="domcontentloaded")
@@ -52,6 +52,9 @@ def test_tiles_light_for_feeds_and_every_sdr(page, base_url):
     waterfall = _tile(page, ".mode-card[onclick=\"selectMode('waterfall')\"]")
     assert "is-running" in waterfall.get_attribute("class")  # no process, but it holds an SDR
     assert waterfall.locator(".wl-doing").inner_text() == "SDR 2"
+
+    weather = _tile(page, ".mode-card[onclick=\"selectMode('weathersat')\"]")
+    assert weather.locator(".wl-doing").inner_text() == "SDR 3"  # claimed as weather_sat
 
     pager = _tile(page, ".mode-card[onclick=\"selectMode('pager')\"]")
     assert "is-running" not in pager.get_attribute("class")

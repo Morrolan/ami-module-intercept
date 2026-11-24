@@ -38,6 +38,7 @@
     };
     const DECODER_LABELS = { adsb: 'ADS-B', acars: 'ACARS', vdl2: 'VDL2', ais: 'AIS', dsc: 'DSC' };
     const FEED_LABELS = { remote: 'remote feed', external: 'local dump1090' };
+    const CLAIM_NAMES = { weathersat: 'weather_sat' };  // SDR claims named unlike their /health process
     const SOURCE_LABELS = {
         adsb: 'Aircraft', ais: 'Vessels', wifi: 'Wi-Fi', bluetooth: 'Bluetooth', sensor: '433 MHz',
         dsc: 'DSC', aprs: 'APRS', meshtastic: 'Meshtastic', rtlamr: 'Meters', pager: 'Pager',
@@ -218,7 +219,8 @@
     function where(decoder) {
         const feed = health && health.sources && health.sources[decoder];
         if (feed) return FEED_LABELS[feed] || feed;
-        const claim = Object.entries((health && health.sdr_claims) || {}).find(([, mode]) => mode === decoder);
+        const name = CLAIM_NAMES[decoder] || decoder;
+        const claim = Object.entries((health && health.sdr_claims) || {}).find(([, mode]) => mode === name);
         if (!claim) return '';
         const [type, index] = claim[0].split(':');
         return (type && type !== 'rtlsdr' ? type + ' ' : 'SDR ') + index;
