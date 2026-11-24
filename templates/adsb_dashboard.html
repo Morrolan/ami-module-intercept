@@ -36,6 +36,7 @@
     <script defer src="{{ url_for('static', filename='js/components/aircraft-key.js') }}"></script>
     <script defer src="{{ url_for('static', filename='js/components/teesside-board.js') }}"></script>
     <script defer src="{{ url_for('static', filename='js/components/aircraft-route.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/components/airport-info.js') }}"></script>
     <!-- Deferred scripts -->
     <script>
         window.INTERCEPT_SHARED_OBSERVER_LOCATION = {{ shared_observer_location | tojson }};
@@ -5414,6 +5415,7 @@ ACARS: ${r.statistics.acarsMessages} messages`;
     <!-- Squawk Code Reference Modal -->
     {% include 'partials/aircraft-key.html' %}
     {% include 'partials/teesside-board.html' %}
+    {% include 'partials/airport-info.html' %}
     <div id="squawkModal" class="squawk-modal">
         <div class="squawk-modal-content">
             <div class="squawk-modal-header">

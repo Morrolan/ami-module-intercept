@@ -1119,6 +1119,22 @@ def aircraft_route(callsign):
         return api_error('Invalid airline callsign', 400)
 
 
+@adsb_bp.route("/airport/<icao>")
+def airport_details(icao):
+    """Bundled reference details for an airport named by a callsign route."""
+    from utils.airports import lookup
+
+    try:
+        airport = lookup(icao.strip().upper())
+    except ValueError:
+        return api_error('Invalid ICAO airport code', 400)
+    if airport is None:
+        return api_error('Airport not in the bundled reference data', 404)
+    response = jsonify({'available': True, **airport})
+    response.headers['Cache-Control'] = 'private, max-age=86400'
+    return response
+
+
 @adsb_bp.route("/start", methods=["POST"])
 @serialize_adsb_control
 def start_adsb():
