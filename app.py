@@ -1268,6 +1268,21 @@ def _get_drone_running() -> bool:
         return False
 
 
+def _get_adsb_state() -> tuple[bool, str | None]:
+    """Whether ADS-B is running, and its feed when it is not our own dump1090.
+
+    A remote receiver or an already-running dump1090 ("external") has no
+    process of ours, so its SBS reader flag is what says it is running. Our own
+    dump1090 is judged by its process, so a crash still reads as stopped.
+    """
+    adsb = sys.modules.get("routes.adsb")
+    session = getattr(adsb, "_runtime_session", None) or {}
+    source = session.get("sdr_type")
+    if source in ("remote", "external"):
+        return bool(getattr(adsb, "adsb_using_service", False)), source
+    return adsb_process is not None and adsb_process.poll() is None, None
+
+
 @app.route("/health")
 def health_check() -> Response:
     """Health check endpoint for monitoring."""
@@ -1276,6 +1291,7 @@ def health_check() -> Response:
 
     bt_active, bt_device_count = _get_bluetooth_health()
     wifi_active, wifi_network_count, wifi_client_count = _get_wifi_health()
+    adsb_active, adsb_source = _get_adsb_state()
 
     # Database health check
     db_ok = True
@@ -1316,7 +1332,7 @@ def health_check() -> Response:
             "processes": {
                 "pager": current_process is not None and (current_process.poll() is None if current_process else False),
                 "sensor": _get_flipper_active() or (sensor_process is not None and sensor_process.poll() is None),
-                "adsb": adsb_process is not None and (adsb_process.poll() is None if adsb_process else False),
+                "adsb": adsb_active,
                 "ais": ais_process is not None and (ais_process.poll() is None if ais_process else False),
                 "acars": acars_process is not None and (acars_process.poll() is None if acars_process else False),
                 "vdl2": vdl2_process is not None and (vdl2_process.poll() is None if vdl2_process else False),
@@ -1340,6 +1356,8 @@ def health_check() -> Response:
                 "ook": ook_process is not None and (ook_process.poll() is None if ook_process else False),
                 "drone": _get_drone_running(),
             },
+            # Running modes fed by something other than our own SDR process
+            "sources": {"adsb": adsb_source} if adsb_active and adsb_source else {},
             "lifecycle": _mode_lifecycle,
             "data": {
                 "aircraft_count": len(adsb_aircraft),

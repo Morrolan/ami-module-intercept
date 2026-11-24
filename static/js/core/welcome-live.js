@@ -4,8 +4,10 @@
  * The welcome page was a static menu. A card at the top of its left column
  * now says what is running (each a link back to it), how many SDRs are
  * attached and claimed, and shows the last day's observations as a stacked
- * strip by source (click it for the Activity feed). Mode tiles whose decoder
- * is running get a light.
+ * strip by source (click it for the Activity feed). Mode tiles get a light
+ * while anything in their context runs, on any SDR or remote feed (Aircraft
+ * covers ADS-B, ACARS and VDL2; Vessels covers AIS and DSC), with a line
+ * saying what and where.
  *
  * Reads the health record RunState shares as 'intercept:health', and
  * /observations/histogram while the welcome page is showing.
@@ -27,6 +29,15 @@
         aprs: { label: 'APRS', href: '/aprs/dashboard' },
         meshtastic: { label: 'Meshtastic', href: '/meshtastic/dashboard' },
     };
+    // What lights a mode tile: every decoder that runs from it, on any SDR or feed
+    const TILE_CONTEXT = {
+        adsb: ['adsb', 'acars', 'vdl2'],
+        ais: ['ais', 'dsc'],
+        bluetooth: PROCESS_ALIASES.bluetooth,
+        wifi: PROCESS_ALIASES.wifi,
+    };
+    const DECODER_LABELS = { adsb: 'ADS-B', acars: 'ACARS', vdl2: 'VDL2', ais: 'AIS', dsc: 'DSC' };
+    const FEED_LABELS = { remote: 'remote feed', external: 'local dump1090' };
     const SOURCE_LABELS = {
         adsb: 'Aircraft', ais: 'Vessels', wifi: 'Wi-Fi', bluetooth: 'Bluetooth', sensor: '433 MHz',
         dsc: 'DSC', aprs: 'APRS', meshtastic: 'Meshtastic', rtlamr: 'Meters', pager: 'Pager',
@@ -203,17 +214,56 @@
         markTiles();
     }
 
-    function markTiles() {
+    /** Where a running decoder gets its signal: a feed, or the SDR it has claimed. */
+    function where(decoder) {
+        const feed = health && health.sources && health.sources[decoder];
+        if (feed) return FEED_LABELS[feed] || feed;
+        const claim = Object.entries((health && health.sdr_claims) || {}).find(([, mode]) => mode === decoder);
+        if (!claim) return '';
+        const [type, index] = claim[0].split(':');
+        return (type && type !== 'rtlsdr' ? type + ' ' : 'SDR ') + index;
+    }
+
+    /** The decoders running in a tile's context, each with its SDR or feed. */
+    function doing(key) {
         const processes = (health && health.processes) || {};
-        const on = (key) => (PROCESS_ALIASES[key] || [key]).some((k) => processes[k]);
+        const context = TILE_CONTEXT[key] || [key];
+        let active = context.filter((k) => processes[k]);
+        // Modes /health has no process for (the waterfall) run while they hold an SDR
+        if (!active.length && !(key in processes) && Object.values((health && health.sdr_claims) || {}).includes(key)) {
+            active = [key];
+        }
+        const named = context.filter((k) => DECODER_LABELS[k]).length > 1;
+        const parts = [];
+        active.forEach((k) => {
+            const text = [named ? DECODER_LABELS[k] : '', where(k)].filter(Boolean).join(' ');
+            if (text && !parts.includes(text)) parts.push(text);
+        });
+        return { running: active.length > 0, text: parts.join(' · ') };
+    }
+
+    function markTiles() {
         document.querySelectorAll('#welcomePage .mode-card').forEach((tile) => {
             const call = (tile.getAttribute('onclick') || '').match(/selectMode\('(\w+)'\)/);
             const dashboard = (tile.getAttribute('href') || '').match(/^\/(\w+)\/dashboard/);
             const key = call ? call[1] : dashboard ? dashboard[1] : null;
-            tile.classList.toggle('is-running', !!key && on(key));
+            const now = key ? doing(key) : { running: false, text: '' };
+            tile.classList.toggle('is-running', now.running);
 
-            // A tool the mode cannot run without (ToolReadiness)
-            const needs = key && window.ToolReadiness ? ToolReadiness.forMode(key) : null;
+            // What it is doing, and on which SDR or feed
+            let line = tile.querySelector('.wl-doing');
+            if (now.text) {
+                if (!line) {
+                    line = el('span', 'wl-doing');
+                    tile.append(line);
+                }
+                line.textContent = now.text;
+            } else if (line) {
+                line.remove();
+            }
+
+            // A tool the mode cannot run without (ToolReadiness); moot while it runs (a remote feed needs no dump1090)
+            const needs = key && !now.running && window.ToolReadiness ? ToolReadiness.forMode(key) : null;
             let badge = tile.querySelector('.wl-needs');
             if (needs) {
                 if (!badge) {
